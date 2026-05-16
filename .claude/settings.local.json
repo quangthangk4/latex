@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk read *)",
+      "Bash(rtk ls *)",
+      "Bash(rtk grep *)",
+      "Bash(python3 *)",
+      "Bash(pdflatex -interaction=nonstopmode main.tex)",
+      "Bash(pdflatex -interaction=nonstopmode -draftmode main.tex)",
+      "Bash(kpsewhich pgf.sty)",
+      "Bash(rtk wc *)",
+      "Bash(rm -f main.aux main.bbl main.blg main.toc main.lof main.lot main.out)",
+      "Bash(bibtex main *)",
+      "Bash(sed -i 's/^% \\\\\\\\input{content/\\\\\\\\input{content/g' main.tex)",
+      "Bash(rm -f main.aux main.toc main.lof main.lot main.out)"
+    ]
+  }
+}

@@ -1,0 +1,222 @@
+\contentsline {chapter}{\numberline {1}Giới thiệu}{12}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Động cơ của đề tài}{12}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Mục tiêu}{12}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Phạm vi}{13}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Ý nghĩa}{13}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}Ý nghĩa thực tiễn}{13}{subsection.1.4.1}%
+\contentsline {subsection}{\numberline {1.4.2}Ý nghĩa khoa học}{13}{subsection.1.4.2}%
+\contentsline {section}{\numberline {1.5}Cấu trúc báo cáo}{14}{section.1.5}%
+\contentsline {chapter}{\numberline {2}Kiến thức và công nghệ nền tảng}{15}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Các Lĩnh vực Công nghệ Chính}{15}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Nền tảng Kiến thức Khoa học}{15}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Kết chương}{16}{section.2.3}%
+\contentsline {chapter}{\numberline {3}Công trình liên quan}{17}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Các công trình nghiên cứu khoa học}{17}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Các hệ thống và phần mềm tương tự}{17}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Kết chương và xác định khoảng trống nghiên cứu}{18}{section.3.3}%
+\contentsline {chapter}{\numberline {4}Hệ thống đề xuất}{19}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Mô tả hệ thống}{19}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Hướng tiếp cận thiết kế}{19}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Yêu cầu}{20}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Yêu cầu chức năng}{20}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Yêu cầu phi chức năng}{20}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}Yêu cầu dữ liệu}{21}{subsection.4.3.3}%
+\contentsline {section}{\numberline {4.4}Kết chương}{21}{section.4.4}%
+\contentsline {chapter}{\numberline {5}Phân tích và Thiết kế}{22}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Phân tích}{22}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Mô hình hóa tương tác (Biểu đồ Usecase)}{22}{subsection.5.1.1}%
+\contentsline {subsubsection}{\numberline {5.1.1.1}Đặc tả chi tiết các Use Case chính}{23}{subsubsection.5.1.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Mô hình hoá quy trình nghiệp vụ (Activity diagram)}{26}{subsection.5.1.2}%
+\contentsline {section}{\numberline {5.2}Giải pháp công nghệ}{37}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Front-end}{37}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Back-end}{38}{subsection.5.2.2}%
+\contentsline {section}{\numberline {5.3}Ứng dụng AI vào hệ thống}{39}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Module 1: Tìm kiếm ngữ nghĩa (Semantic Search)}{40}{subsection.5.3.1}%
+\contentsline {subsubsection}{\numberline {5.3.1.1}Cơ sở Lý thuyết: Text Embedding}{40}{subsubsection.5.3.1.1}%
+\contentsline {subsubsection}{\numberline {5.3.1.2}Quy trình Xử lý Dữ liệu Sách (ETL Pipeline)}{41}{subsubsection.5.3.1.2}%
+\contentsline {subsubsection}{\numberline {5.3.1.3}Thuật toán Tìm kiếm}{42}{subsubsection.5.3.1.3}%
+\contentsline {subsection}{\numberline {5.3.2}Module 2: Hệ thống gợi ý (Recommendation)}{42}{subsection.5.3.2}%
+\contentsline {subsubsection}{\numberline {5.3.2.1}Mô hình IMPLICIT MATRIX FACTORIZATION}{43}{subsubsection.5.3.2.1}%
+\contentsline {subsubsection}{\numberline {5.3.2.2}Kỹ thuật Dữ liệu (Feature Engineering)}{44}{subsubsection.5.3.2.2}%
+\contentsline {subsubsection}{\numberline {5.3.2.3}Luồng xử lý Gợi ý (Recommendation Pipeline)}{45}{subsubsection.5.3.2.3}%
+\contentsline {subsubsection}{\numberline {5.3.2.4}Chi tiết logic phân luồng:}{45}{subsubsection.5.3.2.4}%
+\contentsline {section}{\numberline {5.4}Thiết kế}{46}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Kiến trúc hệ thống}{46}{subsection.5.4.1}%
+\contentsline {subsubsection}{\numberline {5.4.1.1}So sánh và lựa chọn kiến trúc hệ thống}{46}{subsubsection.5.4.1.1}%
+\contentsline {subsection}{\numberline {5.4.2}Thiết kế cơ sở dữ liệu}{49}{subsection.5.4.2}%
+\contentsline {subsubsection}{\numberline {5.4.2.1}Lựa chọn Hệ Quản trị Cơ sở dữ liệu (HQTCSDL)}{49}{subsubsection.5.4.2.1}%
+\contentsline {subsubsection}{\numberline {5.4.2.2}Mô hình Quan hệ Thực thể (ERD)}{49}{subsubsection.5.4.2.2}%
+\contentsline {subsubsection}{\numberline {5.4.2.3}Ánh xạ lược đồ cơ sở dữ liệu quan hệ}{50}{subsubsection.5.4.2.3}%
+\contentsline {subsection}{\numberline {5.4.3}Thiết kế chi tiết bên trong}{51}{subsection.5.4.3}%
+\contentsline {subsubsection}{\numberline {5.4.3.1}Mô hình kiến trúc chi tiết}{51}{subsubsection.5.4.3.1}%
+\contentsline {subsubsection}{\numberline {5.4.3.2}Luồng giao tiếp (Communication Flows) nâng cao}{58}{subsubsection.5.4.3.2}%
+\contentsline {subsection}{\numberline {5.4.4}Thiết kế giao diện}{65}{subsection.5.4.4}%
+\contentsline {subsubsection}{\numberline {5.4.4.1}Giao diện Public (Trang chủ và Tìm kiếm)}{65}{subsubsection.5.4.4.1}%
+\contentsline {subsubsection}{\numberline {5.4.4.2}Giao diện Độc giả (User Pages)}{66}{subsubsection.5.4.4.2}%
+\contentsline {subsubsection}{\numberline {5.4.4.3}Giao diện Thủ thư (Librarian Pages)}{66}{subsubsection.5.4.4.3}%
+\contentsline {chapter}{\numberline {6}Hiện thực hệ thống}{68}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Cấu trúc mã nguồn}{68}{section.6.1}%
+\contentsline {subsection}{\numberline {6.1.1}Mã nguồn Frontend (Giao diện người dùng)}{68}{subsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.1.2}Mã nguồn Backend (Máy chủ ứng dụng)}{69}{subsection.6.1.2}%
+\contentsline {subsection}{\numberline {6.1.3}Mã nguồn AI Module (Trí tuệ nhân tạo)}{70}{subsection.6.1.3}%
+\contentsline {subsection}{\numberline {6.1.4}Hiện thực AI}{70}{subsection.6.1.4}%
+\contentsline {subsubsection}{\numberline {6.1.4.1}Kiến trúc hệ thống AI}{70}{subsubsection.6.1.4.1}%
+\contentsline {paragraph}{\numberline {6.1.4.1.1}ETL Pipeline (Extract-Transform-Load)}{70}{paragraph.6.1.4.1.1}%
+\contentsline {paragraph}{\numberline {6.1.4.1.2}AI Gateway API}{71}{paragraph.6.1.4.1.2}%
+\contentsline {subsubsection}{\numberline {6.1.4.2}Công nghệ sử dụng}{71}{subsubsection.6.1.4.2}%
+\contentsline {subsubsection}{\numberline {6.1.4.3}API Documentation}{71}{subsubsection.6.1.4.3}%
+\contentsline {paragraph}{\numberline {6.1.4.3.1}Hiệu suất}{73}{paragraph.6.1.4.3.1}%
+\contentsline {subsubsection}{\numberline {6.1.4.4}Kết quả}{73}{subsubsection.6.1.4.4}%
+\contentsline {section}{\numberline {6.2}Danh sách hiện thực chức năng theo API}{74}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Đăng ký và Xác thực tài khoản}{74}{subsection.6.2.1}%
+\contentsline {subsubsection}{\numberline {6.2.1.1}Giao diện Đăng ký tài khoản}{74}{subsubsection.6.2.1.1}%
+\contentsline {subsubsection}{\numberline {6.2.1.2}Giao diện Xác thực Email và Hoàn tất}{77}{subsubsection.6.2.1.2}%
+\contentsline {subsection}{\numberline {6.2.2}Đăng nhập hệ thống}{79}{subsection.6.2.2}%
+\contentsline {subsubsection}{\numberline {6.2.2.1}Giao diện Đăng nhập}{79}{subsubsection.6.2.2.1}%
+\contentsline {subsubsection}{\numberline {6.2.2.2}Đặc tả luồng nghiệp vụ Đăng nhập}{79}{subsubsection.6.2.2.2}%
+\contentsline {subsection}{\numberline {6.2.3}Đăng nhập bằng Google }{81}{subsection.6.2.3}%
+\contentsline {subsubsection}{\numberline {6.2.3.1}Giao diện Đăng nhập qua tài khoản Google}{81}{subsubsection.6.2.3.1}%
+\contentsline {subsubsection}{\numberline {6.2.3.2}Đặc tả luồng nghiệp vụ và API}{82}{subsubsection.6.2.3.2}%
+\contentsline {subsection}{\numberline {6.2.4}Khôi phục mật khẩu}{83}{subsection.6.2.4}%
+\contentsline {subsubsection}{\numberline {6.2.4.1}Yêu cầu khôi phục mật khẩu}{83}{subsubsection.6.2.4.1}%
+\contentsline {subsubsection}{\numberline {6.2.4.2}Xác thực hệ thống qua Email}{83}{subsubsection.6.2.4.2}%
+\contentsline {subsubsection}{\numberline {6.2.4.3}Thiết lập mật khẩu mới và Hoàn tất}{84}{subsubsection.6.2.4.3}%
+\contentsline {subsubsection}{\numberline {6.2.4.4}Đặc tả luồng nghiệp vụ}{84}{subsubsection.6.2.4.4}%
+\contentsline {subsection}{\numberline {6.2.5}Thanh điều hướng}{85}{subsection.6.2.5}%
+\contentsline {subsection}{\numberline {6.2.6}Quản lý thông tin cá nhân}{86}{subsection.6.2.6}%
+\contentsline {subsubsection}{\numberline {6.2.6.1}Giao diện Tổng quan hồ sơ}{86}{subsubsection.6.2.6.1}%
+\contentsline {subsubsection}{\numberline {6.2.6.2}Giao diện Cập nhật ảnh đại diện}{87}{subsubsection.6.2.6.2}%
+\contentsline {subsubsection}{\numberline {6.2.6.3}Đặc tả API và Kỹ thuật}{88}{subsubsection.6.2.6.3}%
+\contentsline {subsection}{\numberline {6.2.7}Bảng điều khiển Độc giả}{91}{subsection.6.2.7}%
+\contentsline {subsubsection}{\numberline {6.2.7.1}Giao diện Tổng quan}{91}{subsubsection.6.2.7.1}%
+\contentsline {subsubsection}{\numberline {6.2.7.2}Đặc tả luồng nghiệp vụ Bảng điều khiển}{92}{subsubsection.6.2.7.2}%
+\contentsline {subsection}{\numberline {6.2.8}Khám phá và Tìm kiếm tài liệu}{93}{subsection.6.2.8}%
+\contentsline {subsubsection}{\numberline {6.2.8.1}Giao diện Tìm kiếm tổng hợp}{93}{subsubsection.6.2.8.1}%
+\contentsline {subsubsection}{\numberline {6.2.8.2}Giao diện Chi tiết ấn phẩm}{94}{subsubsection.6.2.8.2}%
+\contentsline {subsection}{\numberline {6.2.9}Danh sách sách yêu thích và Thông báo}{96}{subsection.6.2.9}%
+\contentsline {subsubsection}{\numberline {6.2.9.1}Giao diện quản lý danh sách yêu thích}{96}{subsubsection.6.2.9.1}%
+\contentsline {subsubsection}{\numberline {6.2.9.2}Đặc tả API và Luồng xử lý dữ liệu}{97}{subsubsection.6.2.9.2}%
+\contentsline {subsubsection}{\numberline {6.2.9.3}Hệ thống thông báo và nhắc nhở mượn sách}{97}{subsubsection.6.2.9.3}%
+\contentsline {subsection}{\numberline {6.2.10}Nghiệp vụ Mượn sách}{98}{subsection.6.2.10}%
+\contentsline {subsubsection}{\numberline {6.2.10.1}Luồng Độc giả tự đặt mượn trực tuyến}{98}{subsubsection.6.2.10.1}%
+\contentsline {subsubsection}{\numberline {6.2.10.2}Luồng Thủ thư xử lý và giao sách tại quầy}{99}{subsubsection.6.2.10.2}%
+\contentsline {subsubsection}{\numberline {6.2.10.3}Đặc tả API và Kỹ thuật}{99}{subsubsection.6.2.10.3}%
+\contentsline {subsection}{\numberline {6.2.11}Nghiệp vụ Đặt trước sách}{100}{subsection.6.2.11}%
+\contentsline {subsubsection}{\numberline {6.2.11.1}Khởi tạo yêu cầu đặt trước}{101}{subsubsection.6.2.11.1}%
+\contentsline {subsubsection}{\numberline {6.2.11.2}Quản lý danh sách đặt trước}{101}{subsubsection.6.2.11.2}%
+\contentsline {subsubsection}{\numberline {6.2.11.3}Hệ thống thông báo và Phiếu nhận}{102}{subsubsection.6.2.11.3}%
+\contentsline {subsubsection}{\numberline {6.2.11.4}Xử lý giao sách tại quầy}{103}{subsubsection.6.2.11.4}%
+\contentsline {subsubsection}{\numberline {6.2.11.5}Đặc tả API và Kỹ thuật điều phối}{104}{subsubsection.6.2.11.5}%
+\contentsline {subsection}{\numberline {6.2.12}Đánh giá và Nhận xét ấn phẩm}{105}{subsection.6.2.12}%
+\contentsline {subsubsection}{\numberline {6.2.12.1}Giao diện Hệ thống đánh giá}{105}{subsubsection.6.2.12.1}%
+\contentsline {subsubsection}{\numberline {6.2.12.2}Đặc tả API và Ràng buộc nghiệp vụ}{105}{subsubsection.6.2.12.2}%
+\contentsline {subsection}{\numberline {6.2.13}Lịch sử tìm kiếm}{106}{subsection.6.2.13}%
+\contentsline {subsubsection}{\numberline {6.2.13.1}Giao diện hiển thị}{106}{subsubsection.6.2.13.1}%
+\contentsline {subsubsection}{\numberline {6.2.13.2}Đặc tả giao tiếp hệ thống và Xử lý nghiệp vụ}{107}{subsubsection.6.2.13.2}%
+\contentsline {subsection}{\numberline {6.2.14}Hệ thống Thông báo và Nhắc nhở (Real-time Notifications)}{108}{subsection.6.2.14}%
+\contentsline {subsubsection}{\numberline {6.2.14.1}Giao diện Trung tâm thông báo}{108}{subsubsection.6.2.14.1}%
+\contentsline {subsubsection}{\numberline {6.2.14.2}Đặc tả Kiến trúc và Luồng xử lý thời gian thực}{108}{subsubsection.6.2.14.2}%
+\contentsline {subsubsection}{\numberline {6.2.14.3}Đặc tả Giao tiếp dữ liệu (API)}{109}{subsubsection.6.2.14.3}%
+\contentsline {subsection}{\numberline {6.2.15}Nghiệp vụ Trả sách và Xử lý sự cố}{110}{subsection.6.2.15}%
+\contentsline {subsubsection}{\numberline {6.2.15.1}Giao diện Tra cứu và Trả sách}{110}{subsubsection.6.2.15.1}%
+\contentsline {subsubsection}{\numberline {6.2.15.2}Xử lý sự cố Hư hỏng và Mất sách}{111}{subsubsection.6.2.15.2}%
+\contentsline {subsubsection}{\numberline {6.2.15.3}Hệ thống thông báo và Xác nhận}{112}{subsubsection.6.2.15.3}%
+\contentsline {subsubsection}{\numberline {6.2.15.4}Đặc tả API và Kỹ thuật điều phối}{112}{subsubsection.6.2.15.4}%
+\contentsline {subsection}{\numberline {6.2.16}Khám phá và Đề xuất ấn phẩm}{113}{subsection.6.2.16}%
+\contentsline {subsubsection}{\numberline {6.2.16.1}Giao diện hiển thị Trang chủ}{113}{subsubsection.6.2.16.1}%
+\contentsline {subsubsection}{\numberline {6.2.16.2}Đặc tả giao tiếp hệ thống (API)}{113}{subsubsection.6.2.16.2}%
+\contentsline {subsubsection}{\numberline {6.2.16.3}Kỹ thuật Tối ưu hóa hiệu suất}{114}{subsubsection.6.2.16.3}%
+\contentsline {subsection}{\numberline {6.2.17}Bảng điều khiển Thủ thư}{114}{subsection.6.2.17}%
+\contentsline {subsubsection}{\numberline {6.2.17.1}Giao diện Quản trị tổng thể}{114}{subsubsection.6.2.17.1}%
+\contentsline {subsubsection}{\numberline {6.2.17.2}Đặc tả kỹ thuật và Xử lý dữ liệu}{115}{subsubsection.6.2.17.2}%
+\contentsline {subsection}{\numberline {6.2.18}Quản lý Bản sao }{116}{subsection.6.2.18}%
+\contentsline {subsubsection}{\numberline {6.2.18.1}Danh sách Bản sao}{116}{subsubsection.6.2.18.1}%
+\contentsline {subsection}{\numberline {6.2.19}Quản lý Ấn phẩm}{116}{subsection.6.2.19}%
+\contentsline {subsubsection}{\numberline {6.2.19.1}Giao diện Danh sách Ấn phẩm}{117}{subsubsection.6.2.19.1}%
+\contentsline {subsubsection}{\numberline {6.2.19.2}Xem chi tiết và Cập nhật Ấn phẩm}{118}{subsubsection.6.2.19.2}%
+\contentsline {subsubsection}{\numberline {6.2.19.3}Đặc tả kỹ thuật và Xử lý dữ liệu}{119}{subsubsection.6.2.19.3}%
+\contentsline {subsection}{\numberline {6.2.20}Tạo mới ấn phẩm}{119}{subsection.6.2.20}%
+\contentsline {subsubsection}{\numberline {6.2.20.1}Thiết lập thông tin siêu dữ liệu}{120}{subsubsection.6.2.20.1}%
+\contentsline {subsubsection}{\numberline {6.2.20.2}Quản lý tệp tin đính kèm và Ảnh bìa}{121}{subsubsection.6.2.20.2}%
+\contentsline {subsubsection}{\numberline {6.2.20.3}Đặc tả kỹ thuật và Luồng xử lý API}{121}{subsubsection.6.2.20.3}%
+\contentsline {subsection}{\numberline {6.2.21}Nghiệp vụ Trả sách và Xử lý sự cố}{122}{subsection.6.2.21}%
+\contentsline {subsubsection}{\numberline {6.2.21.1}Giao diện Tra cứu và Trả sách}{122}{subsubsection.6.2.21.1}%
+\contentsline {subsubsection}{\numberline {6.2.21.2}Xử lý sự cố Hư hỏng và Mất sách}{123}{subsubsection.6.2.21.2}%
+\contentsline {subsubsection}{\numberline {6.2.21.3}Hệ thống thông báo và Xác nhận}{124}{subsubsection.6.2.21.3}%
+\contentsline {subsubsection}{\numberline {6.2.21.4}Đặc tả API và Kỹ thuật điều phối}{124}{subsubsection.6.2.21.4}%
+\contentsline {subsection}{\numberline {6.2.22}Nghiệp vụ Thu phí phạt}{125}{subsection.6.2.22}%
+\contentsline {subsubsection}{\numberline {6.2.22.1}Giao diện Tra cứu và Thanh toán}{125}{subsubsection.6.2.22.1}%
+\contentsline {subsubsection}{\numberline {6.2.22.2}Đặc tả Giao tiếp API và Xử lý dữ liệu}{126}{subsubsection.6.2.22.2}%
+\contentsline {subsubsection}{\numberline {6.2.22.3}Quản lý Phí phạt độc giả}{126}{subsubsection.6.2.22.3}%
+\contentsline {paragraph}{\numberline {6.2.22.3.1}Giao diện Thống kê và Danh sách phí phạt}{126}{paragraph.6.2.22.3.1}%
+\contentsline {paragraph}{\numberline {6.2.22.3.2}Đặc tả kỹ thuật và Luồng xử lý}{127}{paragraph.6.2.22.3.2}%
+\contentsline {subsection}{\numberline {6.2.23}Quản lý và Xem danh sách mượn trả}{128}{subsection.6.2.23}%
+\contentsline {subsubsection}{\numberline {6.2.23.1}Giao diện dành cho Độc giả}{128}{subsubsection.6.2.23.1}%
+\contentsline {subsubsection}{\numberline {6.2.23.2}Giao diện dành cho Thủ thư}{130}{subsubsection.6.2.23.2}%
+\contentsline {subsubsection}{\numberline {6.2.23.3}Đặc tả API và Logic nghiệp vụ}{130}{subsubsection.6.2.23.3}%
+\contentsline {chapter}{\numberline {7}Kiểm thử}{132}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Kiểm thử phần mềm và chiến lược kiểm thử}{132}{section.7.1}%
+\contentsline {subsection}{\numberline {7.1.1}Kiểm thử đơn vị}{132}{subsection.7.1.1}%
+\contentsline {subsection}{\numberline {7.1.2}Kiểm thử tích hợp}{132}{subsection.7.1.2}%
+\contentsline {subsection}{\numberline {7.1.3}Kiểm thử API}{132}{subsection.7.1.3}%
+\contentsline {subsection}{\numberline {7.1.4}Kiểm thử hiệu năng}{132}{subsection.7.1.4}%
+\contentsline {section}{\numberline {7.2}Kiểm thử đơn vị}{133}{section.7.2}%
+\contentsline {subsection}{\numberline {7.2.1}Framework kiểm thử Backend (JUnit 5 + Mockito)}{133}{subsection.7.2.1}%
+\contentsline {subsubsection}{\numberline {7.2.1.1}JUnit 5}{133}{subsubsection.7.2.1.1}%
+\contentsline {subsubsection}{\numberline {7.2.1.2}Mockito}{133}{subsubsection.7.2.1.2}%
+\contentsline {subsection}{\numberline {7.2.2}Framework kiểm thử Frontend (Jest)}{133}{subsection.7.2.2}%
+\contentsline {subsubsection}{\numberline {7.2.2.1}Jest}{133}{subsubsection.7.2.2.1}%
+\contentsline {subsubsection}{\numberline {7.2.2.2}ts-jest}{133}{subsubsection.7.2.2.2}%
+\contentsline {subsection}{\numberline {7.2.3}Thiết kế test case}{133}{subsection.7.2.3}%
+\contentsline {subsubsection}{\numberline {7.2.3.1}Trọng tâm kiểm thử Backend}{133}{subsubsection.7.2.3.1}%
+\contentsline {subsubsection}{\numberline {7.2.3.2}Trọng tâm kiểm thử Frontend}{134}{subsubsection.7.2.3.2}%
+\contentsline {subsection}{\numberline {7.2.4}Danh sách test case}{134}{subsection.7.2.4}%
+\contentsline {subsection}{\numberline {7.2.5}Kết quả}{134}{subsection.7.2.5}%
+\contentsline {subsubsection}{\numberline {7.2.5.1}Kết quả Backend}{134}{subsubsection.7.2.5.1}%
+\contentsline {subsubsection}{\numberline {7.2.5.2}Kết quả Frontend}{135}{subsubsection.7.2.5.2}%
+\contentsline {section}{\numberline {7.3}Kiểm thử tích hợp}{136}{section.7.3}%
+\contentsline {subsection}{\numberline {7.3.1}Chiến lược kiểm thử}{136}{subsection.7.3.1}%
+\contentsline {subsubsection}{\numberline {7.3.1.1}SpringBootTest và Testcontainers}{136}{subsubsection.7.3.1.1}%
+\contentsline {subsubsection}{\numberline {7.3.1.2}Cô lập các dịch vụ bên ngoài}{136}{subsubsection.7.3.1.2}%
+\contentsline {subsubsection}{\numberline {7.3.1.3}Cô lập kiểm thử qua \texttt {@BeforeEach}}{137}{subsubsection.7.3.1.3}%
+\contentsline {subsection}{\numberline {7.3.2}Thiết kế test case}{137}{subsection.7.3.2}%
+\contentsline {subsection}{\numberline {7.3.3}Kết quả}{137}{subsection.7.3.3}%
+\contentsline {section}{\numberline {7.4}Kiểm thử API}{138}{section.7.4}%
+\contentsline {subsection}{\numberline {7.4.1}Giới thiệu công cụ}{138}{subsection.7.4.1}%
+\contentsline {subsection}{\numberline {7.4.2}Bộ test collection}{138}{subsection.7.4.2}%
+\contentsline {subsection}{\numberline {7.4.3}Kết quả}{139}{subsection.7.4.3}%
+\contentsline {section}{\numberline {7.5}Kiểm thử hiệu năng}{139}{section.7.5}%
+\contentsline {subsection}{\numberline {7.5.1}Giới thiệu công cụ}{139}{subsection.7.5.1}%
+\contentsline {subsection}{\numberline {7.5.2}Cấu hình kiểm thử}{139}{subsection.7.5.2}%
+\contentsline {subsection}{\numberline {7.5.3}Kết quả}{140}{subsection.7.5.3}%
+\contentsline {section}{\numberline {7.6}Tổng kết}{140}{section.7.6}%
+\contentsline {chapter}{\numberline {8}Triển khai hệ thống}{142}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Container hóa với Docker}{142}{section.8.1}%
+\contentsline {subsection}{\numberline {8.1.1}Giới thiệu Docker}{142}{subsection.8.1.1}%
+\contentsline {subsection}{\numberline {8.1.2}Cấu hình môi trường phát triển cục bộ}{142}{subsection.8.1.2}%
+\contentsline {section}{\numberline {8.2}Dockerfile đa giai đoạn}{143}{section.8.2}%
+\contentsline {subsection}{\numberline {8.2.1}Backend Dockerfile}{143}{subsection.8.2.1}%
+\contentsline {subsection}{\numberline {8.2.2}Frontend Dockerfile}{143}{subsection.8.2.2}%
+\contentsline {section}{\numberline {8.3}Nginx --- Reverse Proxy}{143}{section.8.3}%
+\contentsline {subsection}{\numberline {8.3.1}Vai trò của Nginx}{143}{subsection.8.3.1}%
+\contentsline {subsection}{\numberline {8.3.2}Cấu hình định tuyến}{143}{subsection.8.3.2}%
+\contentsline {section}{\numberline {8.4}Môi trường sản xuất}{144}{section.8.4}%
+\contentsline {subsection}{\numberline {8.4.1}Docker Compose sản xuất}{144}{subsection.8.4.1}%
+\contentsline {subsection}{\numberline {8.4.2}Quản lý biến môi trường và bảo mật}{144}{subsection.8.4.2}%
+\contentsline {subsection}{\numberline {8.4.3}Flyway Migration tự động}{145}{subsection.8.4.3}%
+\contentsline {subsection}{\numberline {8.4.4}Sơ đồ kiến trúc triển khai}{145}{subsection.8.4.4}%
+\contentsline {section}{\numberline {8.5}Quy trình triển khai}{145}{section.8.5}%
+\contentsline {section}{\numberline {8.6}Hạ tầng mạng: VPS, Domain và HTTPS}{146}{section.8.6}%
+\contentsline {subsection}{\numberline {8.6.1}Máy chủ ảo (VPS)}{146}{subsection.8.6.1}%
+\contentsline {subsection}{\numberline {8.6.2}Tên miền (Domain)}{147}{subsection.8.6.2}%
+\contentsline {subsection}{\numberline {8.6.3}HTTPS và SSL/TLS Certificate}{147}{subsection.8.6.3}%
+\contentsline {subsection}{\numberline {8.6.4}Tổng chi phí vận hành}{148}{subsection.8.6.4}%
+\contentsline {chapter}{\numberline {9}Tổng kết}{149}{chapter.9}%
+\contentsline {section}{\numberline {9.1}Kết quả đạt được}{149}{section.9.1}%
+\contentsline {subsection}{\numberline {9.1.1}Kiến trúc phần mềm}{149}{subsection.9.1.1}%
+\contentsline {subsection}{\numberline {9.1.2}Tích hợp Trí tuệ nhân tạo}{149}{subsection.9.1.2}%
+\contentsline {subsection}{\numberline {9.1.3}Kiểm thử}{149}{subsection.9.1.3}%
+\contentsline {subsection}{\numberline {9.1.4}Triển khai hệ thống}{150}{subsection.9.1.4}%
+\contentsline {section}{\numberline {9.2}Nhận xét và đánh giá}{150}{section.9.2}%
+\contentsline {chapter}{\numberline {10}Tài nguyên và Mã nguồn dự án}{151}{chapter.10}%
+\contentsline {chapter}{Tài liệu tham khảo}{152}{table.caption.134}%

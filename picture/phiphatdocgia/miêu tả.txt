@@ -1,0 +1,88 @@
+ ---
+  Endpoint — GET /api/v1/fines/my-fines
+
+  Auth: @RequiresAuthentication (mọi role đã đăng nhập) | Response: 200 OK (paginated)
+
+  Query params:
+
+  ┌────────┬────────┬──────────┬─────────┬───────────────────────────────────┐
+  │ Param  │  Type  │ Required │ Default │               Mô tả               │
+  ├────────┼────────┼──────────┼─────────┼───────────────────────────────────┤
+  │ status │ String │ ❌       │ null    │ UNPAID / PAID — null = lấy tất cả │
+  ├────────┼────────┼──────────┼─────────┼───────────────────────────────────┤
+  │ page   │ int    │ ❌       │ 0       │ Số trang                          │
+  ├────────┼────────┼──────────┼─────────┼───────────────────────────────────┤
+  │ size   │ int    │ ❌       │ 10      │ Số bản ghi/trang                  │
+  └────────┴────────┴──────────┴─────────┴───────────────────────────────────┘
+
+  Logic BE:
+  1. Lấy userId từ JWT (SecurityContext)
+  2. Chuẩn hóa status → uppercase
+  3. COUNT query để lấy totalElements (pagination meta)
+  4. NamedParameterJdbcTemplate: JOIN fines → transactions → items → publications
+  5. Trả về PageResponse<FineResponse>
+
+  SQL:
+  SELECT f.id, f.transaction_id, f.fine_amount, f.type,
+         f.payment_status, f.created_at, f.paid_date,
+         p.title AS publication_title
+  FROM fines f
+  JOIN borrowing_transactions t ON t.id = f.transaction_id
+  JOIN items i        ON i.id = t.item_id
+  JOIN publications p ON p.id = i.publication_id
+  WHERE t.user_id = :userId
+    AND (:status IS NULL OR f.payment_status = :status)
+  ORDER BY f.created_at DESC
+  LIMIT :size OFFSET :offset
+
+  Response — FineResponse:
+
+  ┌──────────────────┬────────────────┬───────────────────────────────────────────┐
+  │      Field       │      Type      │                  Ghi chú                  │
+  ├──────────────────┼────────────────┼───────────────────────────────────────────┤
+  │ fineId           │ String         │ TSID as string                            │
+  ├──────────────────┼────────────────┼───────────────────────────────────────────┤
+  │ transactionId    │ String         │ TSID as string                            │
+  ├──────────────────┼────────────────┼───────────────────────────────────────────┤
+  │ publicationTitle │ String         │                                           │
+  ├──────────────────┼────────────────┼───────────────────────────────────────────┤
+  │ fineAmount       │ BigDecimal     │ VD: 5000                                  │
+  ├──────────────────┼────────────────┼───────────────────────────────────────────┤
+  │ type             │ String         │ OVERDUE_RETURN / DAMAGED_BOOK / LOST_BOOK │
+  ├──────────────────┼────────────────┼───────────────────────────────────────────┤
+  │ status           │ String         │ UNPAID / PAID                             │
+  ├──────────────────┼────────────────┼───────────────────────────────────────────┤
+  │ createdAt        │ Instant        │                                           │
+  ├──────────────────┼────────────────┼───────────────────────────────────────────┤
+  │ paidDate         │ Instant | null │ null nếu chưa thanh toán                  │
+  └──────────────────┴────────────────┴───────────────────────────────────────────┘
+
+  Lỗi: 401 nếu chưa đăng nhập
+
+  ---
+  UI — /userpage/fines (FinesPage.tsx)
+
+  3 Summary Cards:
+
+  ┌─────────────────┬────────────┬──────────────────┐
+  │      Card       │    Màu     │     Nội dung     │
+  ├─────────────────┼────────────┼──────────────────┤
+  │ Chưa thanh toán │ Đỏ         │ Tổng tiền UNPAID │
+  ├─────────────────┼────────────┼──────────────────┤
+  │ Đã thanh toán   │ Xanh lá    │ Tổng tiền PAID   │
+  ├─────────────────┼────────────┼──────────────────┤
+  │ Tổng cộng       │ Xanh dương │ Tổng tất cả      │
+  └─────────────────┴────────────┴──────────────────┘
+
+  ▎ Khi mount: gọi song song 2 request (UNPAID + PAID, size=100) để tính tổng tiền cho Summary Cards.
+
+  Filter tabs: Chưa thanh toán / Đã thanh toán → đổi tab reset page về 0, gọi lại API.
+
+  Mỗi dòng hiển thị:
+  - Icon trạng thái (⚠️ UNPAID / ✅ PAID)
+  - Tiêu đề sách + nhãn loại vi phạm (Trễ hạn / Hư hỏng / Mất sách)
+  - Ngày tạo + ngày thanh toán (nếu PAID)
+  - Số tiền định dạng VND (5.000đ)
+
+  Không có nút thanh toán online — hiển thị hướng dẫn đến quầy thủ thư. Cảnh báo: fine UNPAID sẽ khóa quyền mượn sách
+  mới.

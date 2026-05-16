@@ -1,0 +1,89 @@
+Endpoint A — GET /api/v1/publications/newest
+
+  Auth: Public | Response: 200 OK | List<NewestPublicationsResponse>
+
+  Query param:
+
+  ┌───────┬──────┬─────────┬─────────────────────────┐
+  │ Param │ Type │ Default │          Mô tả          │
+  ├───────┼──────┼─────────┼─────────────────────────┤
+  │ limit │ int  │ 10      │ Số lượng kết quả trả về │
+  └───────┴──────┴─────────┴─────────────────────────┘
+
+  SQL — JPQL (Spring Data JPA + PageRequest.of(0, limit)):
+  SELECT p.id, p.title, p.coverImageUrl, p.publicationYear, p.createdAt,
+         SUM(CASE WHEN i.status = 'AVAILABLE' THEN 1 ELSE 0 END) AS availableItems,
+         AVG(r.star)          AS ratingAverage,
+         COUNT(DISTINCT r.id) AS ratingCount
+  FROM PublicationEntity p
+  LEFT JOIN ItemEntity i   ON i.publicationId = p.id
+  LEFT JOIN RatingEntity r ON r.publicationId = p.id
+  GROUP BY p.id, p.title, p.coverImageUrl, p.publicationYear, p.createdAt
+  ORDER BY p.createdAt DESC
+
+  Response fields:
+
+  ┌─────────────────┬───────────────┬───────────────────────────────────────┐
+  │      Field      │     Type      │                Ghi chú                │
+  ├─────────────────┼───────────────┼───────────────────────────────────────┤
+  │ publicationId   │ String        │ TSID as string                        │
+  ├─────────────────┼───────────────┼───────────────────────────────────────┤
+  │ title           │ String        │                                       │
+  ├─────────────────┼───────────────┼───────────────────────────────────────┤
+  │ coverImageUrl   │ String | null │                                       │
+  ├─────────────────┼───────────────┼───────────────────────────────────────┤
+  │ publicationYear │ Integer       │                                       │
+  ├─────────────────┼───────────────┼───────────────────────────────────────┤
+  │ createdAt       │ Instant       │                                       │
+  ├─────────────────┼───────────────┼───────────────────────────────────────┤
+  │ availableItems  │ Integer       │ Realtime count                        │
+  ├─────────────────┼───────────────┼───────────────────────────────────────┤
+  │ authorNames     │ String[]      │ Query riêng (tránh Cartesian product) │
+  ├─────────────────┼───────────────┼───────────────────────────────────────┤
+  │ ratingAverage   │ Double        │                                       │
+  ├─────────────────┼───────────────┼───────────────────────────────────────┤
+  │ ratingCount     │ Integer       │                                       │
+  └─────────────────┴───────────────┴───────────────────────────────────────┘
+
+  ---
+  Endpoint B — GET /api/v1/publications/most-borrowed
+
+  Auth: Public | Response: 200 OK | List<MostBorrowedPublicationsResponse>
+
+  Query param: limit (int, default 10) — giống endpoint newest
+
+  SQL — JPQL:
+  SELECT p.id, p.title, p.coverImageUrl, p.publicationYear, p.createdAt,
+         SUM(CASE WHEN i.status = 'AVAILABLE' THEN 1 ELSE 0 END) AS availableItems,
+         AVG(r.star)           AS ratingAverage,
+         COUNT(DISTINCT r.id)  AS ratingCount,
+         COUNT(DISTINCT bt.id) AS borrowCount
+  FROM PublicationEntity p
+  LEFT JOIN ItemEntity i              ON i.publicationId = p.id
+  LEFT JOIN RatingEntity r            ON r.publicationId = p.id
+  LEFT JOIN BorrowingTransactionEntity bt
+                                      ON bt.itemId = i.id AND bt.status = 'RETURNED'
+  GROUP BY p.id, p.title, p.coverImageUrl, p.publicationYear, p.createdAt
+  ORDER BY borrowCount DESC
+
+  Response fields: Giống newest + thêm:
+
+  ┌─────────────┬──────┬────────────────────────────────────────────┐
+  │    Field    │ Type │                  Ghi chú                   │
+  ├─────────────┼──────┼────────────────────────────────────────────┤
+  │ borrowCount │ Long │ Chỉ đếm transaction có status = 'RETURNED' │
+  └─────────────┴──────┴────────────────────────────────────────────┘
+
+  ---
+  Điểm kỹ thuật đáng chú ý
+
+  Author names — 2 bước tách biệt:
+  Query chính → lấy list publicationId
+    → findAuthorNamesByPublicationIds(ids) → Map<publicationId, List<String>>
+    → Gán ngược vào từng DTO
+  Lý do: tránh Cartesian product khi JOIN thêm bảng authors vào query đã có GROUP BY + nhiều aggregate.
+
+  "Most Borrowed" definition: Chỉ đếm transaction RETURNED (hoàn thành), không tính BORROWING/OVERDUE để phản ánh lịch
+  sử mượn thực tế, không phải trạng thái hiện tại.
+
+  Không có cache — query realtime mỗi lần gọi.

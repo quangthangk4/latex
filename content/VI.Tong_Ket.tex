@@ -1,0 +1,49 @@
+% --- BẮT ĐẦU PHẦN TỔNG KẾT ---
+
+\chapter{Tổng kết}
+
+Dự án ``Hệ thống Quản lý Thư viện Thông minh tích hợp AI'' (Mã dự án: HK251-DAGD1-512) được xây dựng với mục tiêu hiện đại hóa hoạt động quản lý thư viện truyền thống, đồng thời nâng cao trải nghiệm tra cứu và gợi ý sách cho người dùng thông qua các kỹ thuật Trí tuệ nhân tạo. Sau toàn bộ quá trình nghiên cứu, thiết kế, hiện thực và kiểm thử, nhóm đã hoàn thành một hệ thống phần mềm toàn diện từ lớp kiến trúc đến lớp triển khai.
+
+\section{Kết quả đạt được}
+
+\subsection{Kiến trúc phần mềm}
+
+Nhóm đã thiết kế và hiện thực hóa thành công kiến trúc \textbf{Modular Monolith} kết hợp \textbf{Clean Architecture} cho lõi Backend (Spring Boot). Mã nguồn được phân chia theo ranh giới nghiệp vụ (Bounded Contexts) theo nguyên tắc Domain-Driven Design gồm các module: Quản lý sách, Độc giả, Lưu thông, Đặt chỗ, Phạt vi phạm và Tương tác người dùng. Bên trong mỗi module, các tầng \textit{Domain, Application, Infrastructure và Presentation} được tổ chức nghiêm ngặt theo Dependency Rule, giúp logic nghiệp vụ độc lập hoàn toàn với Framework và Cơ sở dữ liệu \cite{newman2015building}.
+
+Giao diện người dùng được xây dựng trên \textbf{Next.js} với mô hình Backend-for-Frontend (BFF), đảm nhiệm việc Server-Side Rendering và tổng hợp API calls. Dịch vụ AI được triển khai như một \textbf{Autonomous Satellite Microservice} độc lập bằng Python FastAPI, giao tiếp với Backend chính qua REST và Message Queue (RabbitMQ), tách biệt hoàn toàn vòng đời phát triển và mở rộng.
+
+\subsection{Tích hợp Trí tuệ nhân tạo}
+
+\begin{itemize}
+    \item \textbf{Tìm kiếm ngữ nghĩa:} Tích hợp thành công mô hình \texttt{bkai-foundation-models/vietnamese-bi-encoder} (dựa trên SBERT) để mã hóa văn bản tiếng Việt thành vector 768 chiều. Kết hợp với chỉ mục HNSW trên PostgreSQL (pgvector), hệ thống đạt tốc độ tìm kiếm láng giềng gần nhất (ANN) vượt trội so với phương pháp quét toàn bảng \cite{reimers2019sentence}.
+
+    \item \textbf{Gợi ý sách cá nhân hóa:} Xây dựng pipeline Gợi ý lai ghép (Hybrid Recommender) sử dụng thư viện LightFM, kết hợp Collaborative Filtering và Content-based Filtering. Hệ thống tự động cập nhật vector người dùng dựa trên lịch sử tương tác và đánh giá, trả về danh sách gợi ý phù hợp theo ngữ cảnh (Trang chủ, Chi tiết sách) \cite{aggarwal2016recommender}.
+
+    \item \textbf{Xử lý tài liệu bất đồng bộ:} Xây dựng pipeline OCR và Embedding tự động thông qua Celery Workers, cho phép nhập sách mới kèm file PDF và tự động vector hóa nội dung vào Vector Database mà không gián đoạn dịch vụ.
+\end{itemize}
+
+\subsection{Kiểm thử}
+
+Nhóm áp dụng chiến lược kiểm thử phân tầng nhằm đảm bảo chất lượng xuyên suốt toàn bộ hệ thống:
+
+\begin{itemize}
+    \item \textbf{Kiểm thử đơn vị (Unit Testing):} Viết bộ test case cho các Use Case và Domain Service cốt lõi bằng JUnit~5 và Mockito (Backend), Jest (Frontend). Mọi phụ thuộc ngoài đều được thay thế bằng đối tượng giả lập (mock) để đảm bảo tính độc lập và tốc độ thực thi.
+
+    \item \textbf{Kiểm thử tích hợp (Integration Testing):} Sử dụng Testcontainers để khởi tạo môi trường cơ sở dữ liệu thực (PostgreSQL, Redis) trong container tạm thời, kiểm tra toàn bộ luồng nghiệp vụ từ Repository đến Service mà không cần môi trường bên ngoài cố định.
+
+    \item \textbf{Kiểm thử API:} Xây dựng bộ Collection Postman bao phủ các endpoint chính, kiểm tra tính đúng đắn của Request/Response, cơ chế xác thực JWT và xử lý ngoại lệ.
+
+    \item \textbf{Kiểm thử hiệu năng (Performance Testing):} Sử dụng k6 để mô phỏng tải trọng đồng thời, đo đạc Throughput (RPS) và Latency của hệ thống dưới các kịch bản tải trọng khác nhau, xác nhận kiến trúc đáp ứng yêu cầu về hiệu năng trong điều kiện vận hành thực tế.
+\end{itemize}
+
+\subsection{Triển khai hệ thống}
+
+Toàn bộ các dịch vụ (Backend, AI Service, PostgreSQL, Redis, RabbitMQ, NGINX) được đóng gói thành Docker images và điều phối thông qua Docker Compose. Áp dụng kỹ thuật \textbf{Multi-stage Build} để tối ưu kích thước image, tách biệt môi trường build và runtime. Hệ thống được triển khai thành công lên máy chủ VPS, sử dụng NGINX làm Reverse Proxy và cấu hình SSL/TLS qua Let's Encrypt, đảm bảo kết nối HTTPS an toàn.
+
+\section{Nhận xét và đánh giá}
+
+Qua quá trình thực hiện, nhóm nhận thấy việc lựa chọn kiến trúc Modular Monolith kết hợp Clean Architecture là phù hợp với quy mô đồ án: đủ nghiêm ngặt để duy trì chất lượng mã nguồn, nhưng không đánh đổi sự phức tạp vận hành của Microservices thuần túy. Mô hình SBERT tiếng Việt chứng tỏ hiệu quả rõ rệt so với tìm kiếm từ khóa truyền thống, đặc biệt với các truy vấn ngữ nghĩa và từ đồng nghĩa.
+
+Hạn chế lớn nhất của hệ thống hiện tại là chất lượng gợi ý phụ thuộc nhiều vào lượng dữ liệu tương tác, dẫn đến vấn đề Cold Start đối với người dùng và đầu sách mới. Ngoài ra, chi phí tính toán của việc mã hóa (encoding) toàn bộ kho sách khi cập nhật lớn đòi hỏi cơ chế cập nhật gia tăng (incremental update) trong tương lai.
+
+Nhìn chung, dự án đã đạt được mục tiêu đề ra: xây dựng một hệ thống quản lý thư viện hoàn chỉnh, có khả năng vận hành thực tế, tích hợp thành công các kỹ thuật AI hiện đại phù hợp với đặc thù tiếng Việt, và được kiểm thử nghiêm túc trước khi triển khai.

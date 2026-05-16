@@ -1,0 +1,59 @@
+ Kỹ thuật
+
+  - Kafka (notification.send): Các module khác (circulation, schedulers) produce → NotificationEventConsumer consume →
+  lưu DB + push WebSocket
+  - WebSocket STOMP (/ws + SockJS): push real-time về /user/queue/notifications cho từng user. Auth bằng JWT trong STOMP
+   connect headers
+  - DB: 2 bảng — notifications (nội dung chung) + user_notifications (trạng thái đọc/chưa đọc per user)
+  - Toast: Dùng sonner, phân màu theo loại thông báo
+
+
+
+Notification — Luồng hoạt động
+
+  Luồng chính: Trigger → User nhận thông báo
+
+  [Nghiệp vụ xảy ra]
+    ↓
+  Use Case (BE) gửi Kafka message → topic: notification.send
+    NotificationMessage { userId, type, title, message, link, referenceId }
+    ↓
+  NotificationEventConsumer nhận message
+    → Lưu NotificationEntity (nội dung chung: title, message, link)
+    → Lưu UserNotificationEntity (userId ↔ notificationId, isRead = false)
+    → Push WebSocket: messagingTemplate.convertAndSendToUser(userId, "/queue/notifications", payload)
+    ↓
+  FE NotificationContext nhận qua STOMP subscription
+    → prepend vào notifications list
+    → unreadCount + 1
+    → hiện toast (sonner, màu theo type)
+
+  Khởi động app
+
+  User login → có accessToken
+    → NotificationProvider mount
+    → Kết nối STOMP tới /ws (SockJS), gửi JWT trong connect headers
+    → Subscribe /user/queue/notifications
+    → Song song: fetch GET /notifications (20 cái gần nhất) + GET /unread-count
+    → Auto-reconnect sau 5s nếu mất kết nối
+
+  Đánh dấu đã đọc
+
+  User click 1 thông báo
+    → Optimistic UI: update state local ngay (isRead = true, unreadCount - 1)
+    → Gọi PUT /notifications/{id}/read
+    → BE update user_notifications.is_read = true
+
+  User click "Đọc tất cả"
+    → Optimistic UI: toàn bộ isRead = true, unreadCount = 0
+    → Gọi PUT /notifications/read-all
+
+  Các điểm trigger notification (producer)
+
+  Notification được produce từ các use case trong library-circulation-module:
+  - Mượn sách → BORROW_SUCCESS, PICKUP_CONFIRMED
+  - Trả sách → RETURN_CONFIRMED, FINE_ISSUED
+  - Scheduler → OVERDUE_WARNING, BORROW_CANCELLED_EXPIRED, BOOK_AVAILABLE
+  - Đặt trước → BOOK_RESERVED, FINE_PAID
+
+

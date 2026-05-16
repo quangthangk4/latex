@@ -1,0 +1,111 @@
+ ---
+  Endpoint A — GET /api/v1/fines/student
+
+  Auth: LIBRARIAN | Response: 200 OK
+
+  Query param:
+
+  ┌───────────┬────────┬──────────┬──────────────────────────────────┐
+  │   Param   │  Type  │ Required │              Mô tả               │
+  ├───────────┼────────┼──────────┼──────────────────────────────────┤
+  │ studentId │ String │ ✅       │ Mã số sinh viên (VD: B20DCCN123) │
+  └───────────┴────────┴──────────┴──────────────────────────────────┘
+
+  Logic BE:
+  1. Tìm user theo studentId (chỉ ACTIVE) → USER_NOT_FOUND nếu không tồn tại
+  2. Native SQL: JOIN fines → borrowing_transactions → items → publications
+  3. Filter: payment_status = 'UNPAID'
+  4. Sort: created_at DESC
+  5. Tính tổng totalUnpaidAmount
+
+  SQL:
+  SELECT f.id, f.transaction_id, f.fine_amount, f.type,
+         f.payment_status, f.created_at, f.paid_date,
+         p.title AS publication_title
+  FROM fines f
+  JOIN borrowing_transactions t ON t.id = f.transaction_id
+  JOIN items i                  ON i.id = t.item_id
+  JOIN publications p           ON p.id = i.publication_id
+  WHERE t.user_id = :userId AND f.payment_status = 'UNPAID'
+  ORDER BY f.created_at DESC
+
+  Response:
+  {
+    "studentId": "B20DCCN123",
+    "fullName": "Nguyễn Văn A",
+    "totalUnpaidAmount": 15000,
+    "fines": [
+      {
+        "fineId": "...",
+        "transactionId": "...",
+        "publicationTitle": "Clean Code",
+        "fineAmount": 5000,
+        "type": "OVERDUE_RETURN",
+        "status": "UNPAID",
+        "createdAt": "...",
+        "paidDate": null
+      }
+    ]
+  }
+
+  ViolationType: OVERDUE_RETURN / DAMAGED_BOOK / LOST_BOOK
+
+  Lỗi: USER_NOT_FOUND (4004)
+
+  ---
+  Endpoint B — PUT /api/v1/fines/{id}/pay
+
+  Auth: LIBRARIAN | Response: 200 OK — FineResponse
+
+  Path variable: id (Long) — ID khoản phạt
+
+  Logic BE:
+  1. Tìm fine theo {id} → FINE_NOT_FOUND (3010)
+  2. Kiểm tra status == PAID → FINE_ALREADY_PAID (3011)
+  3. Update: payment_status = 'PAID', paid_date = NOW()
+  4. Kafka → notification.send   (FINE_PAID, in-app)
+  5. Kafka → library.email       (FINE_PAID email)
+
+  Kafka events:
+
+  ┌───────────────────┬───────────┬───────────────────────────────────────────────────────┐
+  │       Topic       │   Type    │                       Nội dung                        │
+  ├───────────────────┼───────────┼───────────────────────────────────────────────────────┤
+  │ notification.send │ FINE_PAID │ "Phí phạt cho sách '...' đã được ghi nhận thanh toán" │
+  ├───────────────────┼───────────┼───────────────────────────────────────────────────────┤
+  │ library.email     │ FINE_PAID │ Email xác nhận thanh toán                             │
+  └───────────────────┴───────────┴───────────────────────────────────────────────────────┘
+
+  Lỗi: FINE_NOT_FOUND (3010), FINE_ALREADY_PAID (3011)
+
+  ---
+  Endpoint C — PUT /api/v1/fines/pay-all
+
+  Auth: LIBRARIAN | Response: 200 OK
+
+  Query param:
+
+  ┌───────────┬────────┬──────────┐
+  │   Param   │  Type  │ Required │
+  ├───────────┼────────┼──────────┤
+  │ studentId │ String │ ✅       │
+  └───────────┴────────┴──────────┘
+
+  Logic BE:
+  1. Bulk UPDATE tất cả fine UNPAID của studentId → PAID
+  2. Gửi 1 notification duy nhất (không gửi từng cái)
+  3. Trả về paidCount (= 0 nếu không có fine nào, không throw lỗi)
+
+  SQL:
+  UPDATE fines
+  SET payment_status = 'PAID', paid_date = NOW()
+  WHERE payment_status = 'UNPAID'
+    AND transaction_id IN (
+      SELECT t.id FROM borrowing_transactions t
+      JOIN users u ON u.id = t.user_id
+      WHERE u.student_id = :studentId
+    )
+
+  Response: { "paidCount": 3 }
+
+  Kafka: notification.send → FINE_PAID — "Bạn đã hoàn tất thanh toán X khoản phí phạt"

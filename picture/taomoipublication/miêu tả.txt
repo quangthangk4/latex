@@ -1,0 +1,68 @@
+4 endpoint này hoạt động tuần tự khi thủ thư tạo 1 ấn phẩm mới có file đính kèm:
+
+  Bước 1: POST /publications          → tạo metadata → nhận publicationId
+  Bước 2: POST /{id}/cover            → upload ảnh bìa qua BE → lưu S3
+  Bước 3: GET  /{id}/document-upload-url → BE cấp Presigned PUT URL (15 phút)
+            ↓
+            FE PUT thẳng lên S3 (bypass BE, không tốn bandwidth server)
+  Bước 4: PUT  /{id}/document-url     → FE gửi s3Key về → BE lưu URL vào DB
+
+  ▎ Bước 2, 3, 4 là optional — publication có thể tồn tại không có cover/document.
+
+  ---
+  Endpoint A — POST /api/v1/publications
+
+  Auth: LIBRARIAN | Response: 201 Created
+
+  Request body:
+  {
+    "isbn": "string",
+    "title": "string",
+    "publisherId": 123,
+    "authorIds": [1, 2],
+    "categoryIds": [3],
+    "tagIds": [4],
+    "aiSummary": "string",
+    "aiTargetAudience": "KHOA_CO_KHI",
+    "numberOfPages": 300,
+    "publicationYear": 2024,
+    "callNumber": "CN101"
+  }
+
+  Logic BE: Dùng TsidGenerator tạo ID → lưu bảng publications → insert bảng trung gian (publication_authors,
+  publication_categories, publication_tags) bằng JdbcTemplate batch insert.
+
+  ---
+  Endpoint B — POST /api/v1/publications/{id}/cover
+
+  Auth: LIBRARIAN | Request: multipart/form-data (field: file)
+
+  ┌───────────────────┬───────────────────────────────────┐
+  │     Ràng buộc     │              Giá trị              │
+  ├───────────────────┼───────────────────────────────────┤
+  │ Dung lượng tối đa │ 5MB                               │
+  ├───────────────────┼───────────────────────────────────┤
+  │ Định dạng         │ jpeg, png, webp, gif              │
+  ├───────────────────┼───────────────────────────────────┤
+  │ S3 path           │ covers/{publicationId}/{filename} │
+  └───────────────────┴───────────────────────────────────┘
+
+  Lỗi: FILE_TOO_LARGE (400), INVALID_FILE_TYPE (400), PUBLICATION_NOT_FOUND (404)
+
+  ---
+  Endpoint C — GET /api/v1/publications/{id}/document-upload-url
+
+  Auth: LIBRARIAN | Query param: filename
+
+  Response:
+  { "uploadUrl": "https://s3.amazonaws.com/...?X-Amz-Signature=...", "s3Key":
+  "publications/42/documents/clean-code_uuid.pdf" }
+
+  BE tạo s3Key = publications/{id}/documents/{filename}_{uuid}.pdf → gọi S3 SDK cấp Presigned PUT URL có TTL 15 phút.
+
+  ---
+  Endpoint D — PUT /api/v1/publications/{id}/document-url
+
+  Auth: LIBRARIAN | Request body: { "s3Key": "string" }
+
+  BE gọi storagePort.buildPublicUrl(s3Key) → cập nhật file_url trong DB.

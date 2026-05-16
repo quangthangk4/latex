@@ -1,0 +1,56 @@
+Hiện thực luồng nghiệp vụ Đăng nhập (Authentication Flow)
+
+  3.X.1. Mục tiêu
+  Đảm bảo xác thực đúng danh tính người dùng vào hệ thống, kiểm tra trạng thái hoạt động của tài khoản và phân quyền
+  truy cập (Thủ thư hoặc Sinh viên) ngay sau khi đăng nhập thành công.
+
+  3.X.2. Mô tả chi tiết luồng nghiệp vụ
+
+  Luồng đăng nhập được chia thành các giai đoạn chính như sau:
+
+  Giai đoạn 1: Tiếp nhận và Kiểm tra định dạng (Frontend)
+   1. Người dùng cung cấp thông tin gồm Email và Mật khẩu thông qua giao diện đăng nhập.
+   2. Hệ thống thực hiện kiểm tra sơ bộ: Email phải đúng định dạng của trường (ví dụ: @hcmut.edu.vn). Nếu không hợp lệ,
+      hệ thống sẽ thông báo lỗi ngay tại giao diện mà chưa gửi yêu cầu về máy chủ nhằm tối ưu tài nguyên.
+
+  Giai đoạn 2: Xác thực và Kiểm tra điều kiện tài khoản (Backend)
+  Khi thông tin được gửi về máy chủ, hệ thống thực hiện chuỗi logic nghiệp vụ sau:
+   1. Tìm kiếm tài khoản: Hệ thống truy vấn thông tin người dùng trong cơ sở dữ liệu dựa trên Email.
+   2. Kiểm tra trạng thái tài khoản (Nghiệp vụ quan trọng): Trước khi kiểm tra mật khẩu, hệ thống xác minh trạng thái
+      của tài khoản:
+       * Tài khoản chưa kích hoạt: Nếu người dùng chưa xác thực email sau khi đăng ký, hệ thống từ chối đăng nhập và yêu
+         cầu kiểm tra hộp thư.
+       * Tài khoản bị khóa/bị cấm: Nếu tài khoản vi phạm nội quy thư viện hoặc bị khóa thủ công bởi quản trị viên, hệ
+         thống sẽ ngăn chặn truy cập và thông báo lý do cụ thể.
+   3. Xác thực mật khẩu: Hệ thống sử dụng thuật toán mã hóa một chiều để so sánh mật khẩu người dùng nhập với mật khẩu
+      đã mã hóa trong cơ sở dữ liệu.
+
+  Giai đoạn 3: Khởi tạo phiên làm việc và Phân quyền
+   1. Cấp phát Token: Sau khi xác thực thành công, máy chủ tạo ra một bộ định danh bảo mật (gồm Access Token và Refresh
+      Token) để duy trì trạng thái đăng nhập cho người dùng mà không cần nhập lại mật khẩu trong mỗi lần thao tác.
+   2. Phân quyền người dùng: Hệ thống đính kèm thông tin quyền hạn (Role) vào trong bộ định danh:
+       * Quyền Thủ thư (Librarian): Có toàn quyền quản lý kho sách, duyệt yêu cầu mượn trả và xem báo cáo.
+       * Quyền Sinh viên (Student): Có quyền tìm kiếm sách, đặt trước và quản lý thông tin mượn trả cá nhân.
+
+  Giai đoạn 4: Điều hướng người dùng (Frontend)
+   1. Hệ thống nhận bộ định danh, lưu trữ bảo mật tại trình duyệt.
+   2. Dựa trên quyền hạn đã được phân tích từ máy chủ, hệ thống tự động điều hướng người dùng đến giao diện tương ứng:
+       * Thủ thư được dẫn trực tiếp đến Bảng điều khiển quản lý (Librarian Dashboard).
+       * Sinh viên được dẫn đến Trang cá nhân và Tìm kiếm sách (User Dashboard).
+
+  3.X.3. Sơ đồ logic tóm tắt
+
+    1 graph TD
+    2     A[Nhập Email/Mật khẩu] --> B{Kiểm tra định dạng?}
+    3     B -- Không --> C[Thông báo lỗi định dạng]
+    4     B -- Đúng --> D[Gửi yêu cầu về Server]
+    5     D --> E{Tài khoản tồn tại?}
+    6     E -- Không --> F[Thông báo Sai Email/Mật khẩu]
+    7     E -- Có --> G{Trạng thái Active?}
+    8     G -- Bị khóa/Chưa xác thực --> H[Thông báo lỗi trạng thái]
+    9     G -- Active --> I{Mật khẩu đúng?}
+   10     I -- Sai --> F
+   11     I -- Đúng --> J[Cấp mã định danh Token]
+   12     J --> K{Kiểm tra quyền - Role}
+   13     K -- Librarian --> L[Điều hướng trang Quản trị]
+   14     K -- Student --> M[Điều hướng trang Cá nhân]

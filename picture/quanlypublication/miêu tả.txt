@@ -1,0 +1,111 @@
+ ---
+  Endpoint A — PUT /api/v1/publications/{id}
+
+  Auth: LIBRARIAN | Response: 200 OK
+
+  Request body:
+
+  ┌─────────────────────────────────────────┬────────────────────┬─────────────────────────┐
+  │                  Field                  │        Type        │          Mô tả          │
+  ├─────────────────────────────────────────┼────────────────────┼─────────────────────────┤
+  │ title, subtitle, description            │ String             │ Thông tin cơ bản        │
+  ├─────────────────────────────────────────┼────────────────────┼─────────────────────────┤
+  │ language                                │ String             │ Ngôn ngữ                │
+  ├─────────────────────────────────────────┼────────────────────┼─────────────────────────┤
+  │ numberOfPages, publicationYear, edition │ Integer            │ Thông số vật lý         │
+  ├─────────────────────────────────────────┼────────────────────┼─────────────────────────┤
+  │ size, weight                            │ String / Double    │ Kích thước, trọng lượng │
+  ├─────────────────────────────────────────┼────────────────────┼─────────────────────────┤
+  │ callNumber                              │ String             │ Mã DDC                  │
+  ├─────────────────────────────────────────┼────────────────────┼─────────────────────────┤
+  │ aiTargetAudience                        │ Enum FacultyTarget │ Đối tượng AI            │
+  ├─────────────────────────────────────────┼────────────────────┼─────────────────────────┤
+  │ publisherId                             │ Long               │ ID nhà xuất bản         │
+  ├─────────────────────────────────────────┼────────────────────┼─────────────────────────┤
+  │ authorIds, categoryIds, tagIds          │ Long[]             │ Danh sách liên kết      │
+  └─────────────────────────────────────────┴────────────────────┴─────────────────────────┘
+
+  Logic BE:
+  1. Tìm publication theo {id} → 404 nếu không tồn tại
+  2. Update fields cơ bản qua JPA saveAndFlush
+  3. Đồng bộ junction tables:
+     - DELETE FROM publication_authors/categories/tags WHERE publication_id = {id}
+     - INSERT mới bằng JdbcTemplate batch + TsIdGenerator
+
+  Response: { "code": 200, "message": "update success", "data": null }
+
+  ---
+  Endpoint B — GET /api/v1/publications/librarian
+
+  Auth: LIBRARIAN | Response: 200 OK (paginated)
+
+  Query params:
+
+  ┌─────────────┬─────────┬───────────┬─────────────────────────────────────┐
+  │    Param    │  Type   │  Default  │                Mô tả                │
+  ├─────────────┼─────────┼───────────┼─────────────────────────────────────┤
+  │ keyword     │ String  │ —         │ Tìm theo tên, mã                    │
+  ├─────────────┼─────────┼───────────┼─────────────────────────────────────┤
+  │ categoryId  │ Long    │ —         │ Lọc theo thể loại                   │
+  ├─────────────┼─────────┼───────────┼─────────────────────────────────────┤
+  │ year        │ Integer │ —         │ Lọc theo năm xuất bản               │
+  ├─────────────┼─────────┼───────────┼─────────────────────────────────────┤
+  │ hasItems    │ Boolean │ —         │ true = có bản sao / false = chưa có │
+  ├─────────────┼─────────┼───────────┼─────────────────────────────────────┤
+  │ sortBy      │ String  │ createdAt │ createdAt, title, publicationYear   │
+  ├─────────────┼─────────┼───────────┼─────────────────────────────────────┤
+  │ sortDir     │ String  │ DESC      │ ASC / DESC                          │
+  ├─────────────┼─────────┼───────────┼─────────────────────────────────────┤
+  │ page / size │ Integer │ 0 / 20    │ Phân trang                          │
+  └─────────────┴─────────┴───────────┴─────────────────────────────────────┘
+
+  Response — mỗi item:
+
+  ┌─────────────────┬──────────┬───────────────────────────┐
+  │      Field      │   Type   │          Ghi chú          │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ publicationId   │ String   │ TSID serialized as string │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ title, subtitle │ String   │                           │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ coverImageUrl   │ String   │ nullable                  │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ authorNames     │ String[] │                           │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ publicationYear │ Integer  │                           │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ totalItems      │ Long     │ Tổng số bản sao           │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ availableItems  │ Long     │ Số bản sao đang sẵn dùng  │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ isbn            │ String   │ nullable                  │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ publisherName   │ String   │ nullable                  │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ categoryNames   │ String   │ Comma-separated           │
+  ├─────────────────┼──────────┼───────────────────────────┤
+  │ createdAt       │ Instant  │                           │
+  └─────────────────┴──────────┴───────────────────────────┘
+
+  SQL strategy — Native query với EntityManager:
+
+  SELECT p.id, p.title, p.subtitle, p.cover_image_url,
+         p.publication_year, p.created_at,
+         STRING_AGG(DISTINCT a.name, ',')  AS author_names,
+         COUNT(DISTINCT i.id)              AS total_items,
+         p.isbn, pub.name                  AS publisher_name,
+         STRING_AGG(DISTINCT c.name, ',')  AS category_names,
+         COUNT(DISTINCT i.id) FILTER (WHERE i.status = 'AVAILABLE') AS available_items
+  FROM publications p
+  LEFT JOIN publication_authors pa ON pa.publication_id = p.id
+  LEFT JOIN authors a              ON a.id = pa.author_id
+  LEFT JOIN publication_categories pc ON pc.publication_id = p.id
+  LEFT JOIN categories c           ON c.id = pc.category_id
+  LEFT JOIN publishers pub         ON pub.id = p.publisher_id
+  LEFT JOIN items i                ON i.publication_id = p.id
+  WHERE 1=1 [+ dynamic filters]
+  GROUP BY p.id, p.title, p.subtitle, p.cover_image_url,
+           p.publication_year, p.created_at, p.isbn, pub.name
+  ORDER BY [dynamic sort]
+
+  Filter hasItems dùng EXISTS subquery thay vì GROUP BY HAVING để tránh ảnh hưởng đến COUNT.

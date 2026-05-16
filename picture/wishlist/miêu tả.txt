@@ -1,0 +1,114 @@
+Tổng quan API
+
+  Base: /api/v1/wishlist | Auth: @RequiresAuthentication (tất cả endpoints)
+
+  ┌────────┬─────────────────────────┬───────────────────────────────────────┐
+  │ Method │        Endpoint         │                 Mô tả                 │
+  ├────────┼─────────────────────────┼───────────────────────────────────────┤
+  │ GET    │ /                       │ Danh sách wishlist của user hiện tại  │
+  ├────────┼─────────────────────────┼───────────────────────────────────────┤
+  │ POST   │ /{publicationId}        │ Thêm sách vào wishlist                │
+  ├────────┼─────────────────────────┼───────────────────────────────────────┤
+  │ DELETE │ /{publicationId}        │ Xóa sách khỏi wishlist                │
+  ├────────┼─────────────────────────┼───────────────────────────────────────┤
+  │ GET    │ /{publicationId}/status │ Kiểm tra sách có trong wishlist không │
+  └────────┴─────────────────────────┴───────────────────────────────────────┘
+
+  ---
+  Endpoint A — POST /api/v1/wishlist/{publicationId}
+
+  Response: 200 OK
+
+  Logic BE:
+  1. Tìm WishListEntity của user → nếu chưa có thì tạo mới (TsIdGenerator)
+  2. Idempotent check: sách đã có trong list → return luôn, không lỗi
+  3. Tạo WishListItemEntity (addedAt = now()) → save
+  4. Lưu thêm user_interactions { type = WISHLIST } → dùng cho AI recommendation
+
+  DB writes: wish_lists, wish_lists_item, user_interactions
+
+  ---
+  Endpoint B — GET /api/v1/wishlist
+
+  Response: List<WishlistItemResponse>
+
+  Response fields:
+
+  ┌─────────────────┬───────────────┐
+  │      Field      │     Type      │
+  ├─────────────────┼───────────────┤
+  │ id              │ String        │
+  ├─────────────────┼───────────────┤
+  │ title           │ String        │
+  ├─────────────────┼───────────────┤
+  │ coverImageUrl   │ String | null │
+  ├─────────────────┼───────────────┤
+  │ authorNames     │ String        │
+  ├─────────────────┼───────────────┤
+  │ publicationYear │ Integer       │
+  ├─────────────────┼───────────────┤
+  │ addedAt         │ Instant       │
+  └─────────────────┴───────────────┘
+
+  SQL — Native:
+  SELECT p.id, p.title, p.cover_image_url, p.publication_year,
+         STRING_AGG(a.name, ', ' ORDER BY a.name) AS author_names,
+         wli.added_at
+  FROM wish_lists wl
+  JOIN wish_lists_item wli    ON wli.wish_list_id = wl.id
+  JOIN publications p         ON p.id = wli.publication_id
+  LEFT JOIN publication_authors pa ON pa.publication_id = p.id
+  LEFT JOIN authors a         ON a.id = pa.author_id
+  WHERE wl.user_id = :userId
+  GROUP BY p.id, p.title, p.cover_image_url, p.publication_year, wli.added_at
+  ORDER BY wli.added_at DESC
+
+  ---
+  Endpoint C — DELETE /api/v1/wishlist/{publicationId}
+
+  Response: 200 OK
+
+  Logic: Tìm wishlist của user → removeIf(item.publicationId == publicationId) → save
+
+  ---
+  Endpoint D — GET /api/v1/wishlist/{publicationId}/status
+
+  Response: { "data": true/false }
+
+  JPQL:
+  SELECT COUNT(i) > 0 FROM WishListEntity w JOIN w.items i
+  WHERE w.userId = :userId AND i.publicationId = :publicationId
+
+  ---
+  Luồng hoạt động
+
+  Trang chi tiết sách — Toggle wishlist:
+  Trang load → GET /wishlist/{id}/status
+    → setInWishlist(true/false) → render icon tim đầy/rỗng
+
+  User click tim:
+    → disable nút (wishlistLoading = true)
+    → POST hoặc DELETE /wishlist/{id}
+    → API trả về → setInWishlist(!inWishlist) + toast
+    → enable nút lại
+
+  ▎ Không dùng Optimistic Update — đợi API xong mới cập nhật UI.
+
+  WishlistPage — Xóa:
+  User click Trash icon
+    → DELETE /wishlist/{publicationId}
+    → Thành công → filter lại state local (loại item ra)
+    → Sonner toast xác nhận
+
+  ---
+  UI — /userpage/wishlist (WishlistPage.tsx)
+
+  - Grid 2 cột (md+), mỗi card: ảnh bìa + tiêu đề + tác giả + năm + 2 nút
+  - Nút "Xem chi tiết" → link sang public book detail
+  - Nút "Xóa" (Trash icon) → xóa khỏi wishlist
+
+  ---
+  Điểm kỹ thuật đáng chú ý
+
+  Interaction tracking ẩn: Mỗi lần thêm wishlist → tự động insert user_interactions { type = WISHLIST } để phục vụ AI
+  recommendation sau này — user không thấy, không có UI cho việc này.

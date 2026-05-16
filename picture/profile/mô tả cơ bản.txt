@@ -1,0 +1,60 @@
+ User Profile — Tổng quan
+
+  API
+
+  Base: /api/v1/users — yêu cầu JWT
+
+  ┌────────┬─────────────────────────────┬───────────────────────────────────────────┐
+  │ Method │          Endpoint           │                   Mô tả                   │
+  ├────────┼─────────────────────────────┼───────────────────────────────────────────┤
+  │ GET    │ /my-profile                 │ Lấy thông tin cá nhân                     │
+  ├────────┼─────────────────────────────┼───────────────────────────────────────────┤
+  │ PUT    │ /my-profile                 │ Cập nhật thông tin                        │
+  ├────────┼─────────────────────────────┼───────────────────────────────────────────┤
+  │ POST   │ /avatar                     │ Upload ảnh đại diện (multipart/form-data) │
+  ├────────┼─────────────────────────────┼───────────────────────────────────────────┤
+  │ PUT    │ /my-profile/change-password │ Đổi mật khẩu                              │
+  └────────┴─────────────────────────────┴───────────────────────────────────────────┘
+
+  Kỹ thuật
+
+  - Avatar: Upload multipart qua BE → BE lưu lên S3 tại path avatars/{userId} → trả về S3 URL
+  - Validation BE: @Pattern cho fullName (chỉ chữ), phoneNumber (10–15 số); @Past cho dateOfBirth; @Size cho address
+  (max 200)
+  - Auth: Lấy userId từ JWT token qua SecurityEvaluator, không nhận userId từ client
+
+  Data fields
+
+  fullName, dateOfBirth, phoneNumber, studentId, faculty (enum), address, profilePictureUrl, creditScore (mặc định 100),
+   aiPersonalizationEnabled
+
+  ---
+  Luồng hoạt động
+
+  Xem profile
+
+  Trang mount → GET /my-profile
+    → Map data vào UI: thẻ thông tin tĩnh + form chỉnh sửa
+
+  Cập nhật thông tin
+
+  User click "Chỉnh sửa" → unlock các input
+    → Sửa field → click "Lưu"
+    → PUT /my-profile { fullName, dateOfBirth, phoneNumber, ... }
+    → Hiện toast thành công/thất bại
+
+  Đổi avatar
+
+  User click vào avatar → hover hiện icon camera
+    → Click → chọn file từ máy
+    → POST /avatar (multipart/form-data)
+    → BE upload S3, trả về profilePictureUrl mới
+    → FE cập nhật ảnh preview ngay
+
+  Đổi mật khẩu
+
+  User điền 3 field: mật khẩu hiện tại / mới / xác nhận
+    → FE validate: không rỗng + mới === xác nhận
+    → PUT /my-profile/change-password { currentPassword, newPassword }
+    → BE kiểm tra currentPassword đúng → hash mật khẩu mới → lưu DB
+    → Toast thành công / lỗi sai mật khẩu cũ

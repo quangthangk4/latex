@@ -1,0 +1,17 @@
+ 1. /librarian/copies — danh sách với filter + badge
+  2. /librarian/copies/:id — trang detail đầy đủ sections
+  3. Lịch sử mượn của bản sao
+
+     Cards: Mượn/Trả hôm nay | Chờ lấy/Đặt trước | Quá hạn/Phát sinh | Hỏng/Mất
+
+  3. Độc giả rủi ro cao
+     Grid: creditScore + overdue_count + unpaid_fine + total_debt
+
+  4. Báo cáo phân tích
+     ├── Trend Chart (tab: 7 ngày/30 ngày/6 tháng/1 năm) — Bar chart mượn vs trả
+     ├── Top sách mượn nhiều — Progress bar list
+     ├── Item Status — Pie chart SVG
+     └── Fine Types — Donut chart
+
+  API calls: Promise.all([getSummary(), getCharts(period), getRiskyUsers()]) khi mount. Re-fetch charts khi chartPeriod
+  thay đổi.

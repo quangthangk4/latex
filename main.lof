@@ -1,0 +1,120 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Biểu đồ Usecase tổng quát của Hệ thống Quản lý Thư viện}}{22}{figure.caption.3}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Đăng ký tài khoản — Activity Diagram}}{27}{figure.caption.8}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Đăng nhập tài khoản — Activity Diagram}}{28}{figure.caption.9}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Tìm kiếm sách — Activity Diagram}}{29}{figure.caption.10}%
+\contentsline {figure}{\numberline {5.5}{\ignorespaces Gợi ý sách — Activity Diagram}}{30}{figure.caption.11}%
+\contentsline {figure}{\numberline {5.6}{\ignorespaces Mượn sách — Activity Diagram}}{31}{figure.caption.12}%
+\contentsline {figure}{\numberline {5.7}{\ignorespaces Xử lý hàng đợi — Activity Diagram}}{32}{figure.caption.13}%
+\contentsline {figure}{\numberline {5.8}{\ignorespaces Gia hạn sách — Activity Diagram}}{33}{figure.caption.14}%
+\contentsline {figure}{\numberline {5.9}{\ignorespaces Trả sách — Activity Diagram}}{34}{figure.caption.15}%
+\contentsline {figure}{\numberline {5.10}{\ignorespaces Đánh giá và bình luận sách — Activity Diagram}}{35}{figure.caption.16}%
+\contentsline {figure}{\numberline {5.11}{\ignorespaces Tạo sách với AI — Activity Diagram}}{36}{figure.caption.17}%
+\contentsline {figure}{\numberline {5.12}{\ignorespaces Kiến trúc tích hợp hệ thống}}{40}{figure.caption.20}%
+\contentsline {figure}{\numberline {5.13}{\ignorespaces Quy trình Vector hóa nội dung sách}}{41}{figure.caption.24}%
+\contentsline {figure}{\numberline {5.14}{\ignorespaces Luồng thực thi tìm kiếm ngữ nghĩa}}{42}{figure.caption.26}%
+\contentsline {figure}{\numberline {5.15}{\ignorespaces Lược đồ thuật toán phân luồng gợi ý (Switching Hybrid)}}{45}{figure.caption.30}%
+\contentsline {figure}{\numberline {5.16}{\ignorespaces So sánh các đặc tính của các kiểu kiến trúc (Nguồn: Mark Richards, Neal Ford, \textit {Fundamentals of Software Architecture}, O'Reilly, 2nd ed., 2020) \cite {Richards2020FSA}.}}{47}{figure.caption.31}%
+\contentsline {figure}{\numberline {5.17}{\ignorespaces Sơ đồ Quan hệ Thực thể (ERD) tổng thể của hệ thống}}{50}{figure.caption.33}%
+\contentsline {figure}{\numberline {5.18}{\ignorespaces Ánh xạ cơ sở dữ liệu quan hệ ở dạng tổng quát}}{51}{figure.caption.34}%
+\contentsline {figure}{\numberline {5.19}{\ignorespaces Sơ đồ kiến trúc tổng thể hệ thống}}{52}{figure.caption.35}%
+\contentsline {figure}{\numberline {5.20}{\ignorespaces Các Bounded Contexts trong hệ thống}}{53}{figure.caption.36}%
+\contentsline {figure}{\numberline {5.21}{\ignorespaces Clean architecture (R. C. Martin, \textit {Clean Architecture: A Craftsman’s Guide to Software Structure and Design}, Pearson Education, 2018 \cite {martin2018clean})}}{54}{figure.caption.37}%
+\contentsline {figure}{\numberline {5.22}{\ignorespaces Cấu trúc Clean Architecture kết hợp Domain-Driven Design trong một Module}}{55}{figure.caption.38}%
+\contentsline {figure}{\numberline {5.23}{\ignorespaces Sơ đồ luồng dữ liệu và Kiến trúc chi tiết AI Service}}{59}{figure.caption.39}%
+\contentsline {figure}{\numberline {5.24}{\ignorespaces Kiến trúc chi tiết AI Service và Luồng dữ liệu}}{60}{figure.caption.40}%
+\contentsline {figure}{\numberline {5.25}{\ignorespaces Giao diện Public: Trang chủ và Tìm kiếm}}{65}{figure.caption.41}%
+\contentsline {figure}{\numberline {5.26}{\ignorespaces Giao diện Chi tiết sách}}{66}{figure.caption.42}%
+\contentsline {figure}{\numberline {5.27}{\ignorespaces Giao diện Độc giả: Dashboard và Quản lý mượn sách}}{66}{figure.caption.43}%
+\contentsline {figure}{\numberline {5.28}{\ignorespaces Giao diện Thủ thư: Quản lý danh mục và Lưu thông}}{67}{figure.caption.44}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Cấu trúc thư mục mã nguồn Frontend}}{68}{figure.caption.45}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Cấu trúc thư mục mã nguồn Backend (Modular Monolith)}}{69}{figure.caption.46}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Cấu trúc thư mục mã nguồn phân hệ AI}}{70}{figure.caption.47}%
+\contentsline {figure}{\numberline {6.4}{\ignorespaces Endpoint tìm kiếm ngữ nghĩa}}{72}{figure.caption.49}%
+\contentsline {figure}{\numberline {6.5}{\ignorespaces Endpoint gợi ý sách}}{73}{figure.caption.50}%
+\contentsline {figure}{\numberline {6.6}{\ignorespaces Giao diện Đăng ký tài khoản hệ thống SmartLibrary}}{74}{figure.caption.51}%
+\contentsline {figure}{\numberline {6.7}{\ignorespaces Nội dung Email yêu cầu xác nhận tài khoản}}{77}{figure.caption.53}%
+\contentsline {figure}{\numberline {6.8}{\ignorespaces Giao diện thông báo kích hoạt tài khoản thành công}}{78}{figure.caption.54}%
+\contentsline {figure}{\numberline {6.9}{\ignorespaces Giao diện Đăng nhập hệ thống SmartLibrary}}{79}{figure.caption.55}%
+\contentsline {figure}{\numberline {6.10}{\ignorespaces Giao diện lựa chọn tài khoản Google để xác thực}}{81}{figure.caption.56}%
+\contentsline {figure}{\numberline {6.11}{\ignorespaces Giao diện hoàn tất hồ sơ cho lần đăng nhập đầu tiên}}{81}{figure.caption.57}%
+\contentsline {figure}{\numberline {6.12}{\ignorespaces Giao diện nhập email yêu cầu khôi phục}}{83}{figure.caption.59}%
+\contentsline {figure}{\numberline {6.13}{\ignorespaces Thông báo kiểm tra hộp thư}}{83}{figure.caption.59}%
+\contentsline {figure}{\numberline {6.14}{\ignorespaces Nội dung thư điện tử chứa đường dẫn đặt lại mật khẩu}}{83}{figure.caption.60}%
+\contentsline {figure}{\numberline {6.15}{\ignorespaces Giao diện thiết lập mật khẩu mới}}{84}{figure.caption.61}%
+\contentsline {figure}{\numberline {6.16}{\ignorespaces Thông báo cập nhật thành công}}{84}{figure.caption.61}%
+\contentsline {figure}{\numberline {6.17}{\ignorespaces Giao diện Thanh điều hướng chính của hệ thống}}{85}{figure.caption.62}%
+\contentsline {figure}{\numberline {6.18}{\ignorespaces Giao diện Quản lý thông tin cá nhân (Profile Dashboard)}}{86}{figure.caption.63}%
+\contentsline {figure}{\numberline {6.19}{\ignorespaces Menu tùy chọn thao tác với ảnh đại diện}}{87}{figure.caption.64}%
+\contentsline {figure}{\numberline {6.20}{\ignorespaces Hộp thoại chọn tệp tin}}{88}{figure.caption.65}%
+\contentsline {figure}{\numberline {6.21}{\ignorespaces Ảnh đại diện sau khi cập nhật}}{88}{figure.caption.65}%
+\contentsline {figure}{\numberline {6.22}{\ignorespaces Giao diện Bảng điều khiển dành cho Sinh viên/Độc giả}}{91}{figure.caption.67}%
+\contentsline {figure}{\numberline {6.23}{\ignorespaces Giao diện Tìm kiếm và Bộ lọc nâng cao}}{93}{figure.caption.68}%
+\contentsline {figure}{\numberline {6.24}{\ignorespaces Giao diện Thông tin tổng quan và Tình trạng mượn trả}}{94}{figure.caption.69}%
+\contentsline {figure}{\numberline {6.25}{\ignorespaces Khối dữ liệu Mô tả nội dung và Thông số xuất bản}}{95}{figure.caption.70}%
+\contentsline {figure}{\numberline {6.26}{\ignorespaces Giao diện quản lý danh sách sách đã lưu của độc giả}}{96}{figure.caption.71}%
+\contentsline {figure}{\numberline {6.27}{\ignorespaces Nút thao tác lưu sách tại trang chi tiết ấn phẩm}}{96}{figure.caption.72}%
+\contentsline {figure}{\numberline {6.28}{\ignorespaces Thông báo đẩy trên hệ thống web}}{97}{figure.caption.74}%
+\contentsline {figure}{\numberline {6.29}{\ignorespaces Thư điện tử nhắc nhở nhận sách}}{97}{figure.caption.74}%
+\contentsline {figure}{\numberline {6.30}{\ignorespaces Giao diện chọn bản sao và thực hiện mượn sách}}{98}{figure.caption.75}%
+\contentsline {figure}{\numberline {6.31}{\ignorespaces Phiếu mượn điện tử (Mã QR)}}{98}{figure.caption.76}%
+\contentsline {figure}{\numberline {6.32}{\ignorespaces Thư điện tử thông báo lịch hẹn}}{98}{figure.caption.76}%
+\contentsline {figure}{\numberline {6.33}{\ignorespaces Tra cứu qua Mã giao dịch / Quét QR}}{99}{figure.caption.77}%
+\contentsline {figure}{\numberline {6.34}{\ignorespaces Tra cứu thủ công qua Mã SV và Mã vạch sách}}{99}{figure.caption.77}%
+\contentsline {figure}{\numberline {6.35}{\ignorespaces Màn hình thông báo giao sách thành công}}{99}{figure.caption.78}%
+\contentsline {figure}{\numberline {6.36}{\ignorespaces Giao diện tùy chọn cơ sở nhận sách khi đặt trước}}{101}{figure.caption.79}%
+\contentsline {figure}{\numberline {6.37}{\ignorespaces Trạng thái Đang chờ xếp hàng}}{101}{figure.caption.80}%
+\contentsline {figure}{\numberline {6.38}{\ignorespaces Trạng thái Sách sẵn sàng nhận}}{102}{figure.caption.81}%
+\contentsline {figure}{\numberline {6.39}{\ignorespaces Thông báo cập nhật ngay trên trang web}}{102}{figure.caption.82}%
+\contentsline {figure}{\numberline {6.40}{\ignorespaces Thư điện tử thông báo sách đã về}}{102}{figure.caption.82}%
+\contentsline {figure}{\numberline {6.41}{\ignorespaces Phiếu nhận sách điện tử (Mã QR)}}{103}{figure.caption.83}%
+\contentsline {figure}{\numberline {6.42}{\ignorespaces Giao diện Thủ thư xác nhận giao sách đặt trước}}{103}{figure.caption.84}%
+\contentsline {figure}{\numberline {6.43}{\ignorespaces Giao diện Đánh giá và Nhận xét từ cộng đồng độc giả}}{105}{figure.caption.85}%
+\contentsline {figure}{\numberline {6.44}{\ignorespaces Giao diện gợi ý từ khóa tìm kiếm gần đây tại Trang chủ}}{106}{figure.caption.86}%
+\contentsline {figure}{\numberline {6.45}{\ignorespaces Danh sách thả xuống quản lý lịch sử tại Trang tìm kiếm}}{106}{figure.caption.87}%
+\contentsline {figure}{\numberline {6.46}{\ignorespaces Giao diện quản lý Thông báo và Nhắc nhở dành cho Độc giả}}{108}{figure.caption.88}%
+\contentsline {figure}{\numberline {6.47}{\ignorespaces Tập hợp các điểm cuối (Endpoints) của phân hệ Thông báo}}{109}{figure.caption.89}%
+\contentsline {figure}{\numberline {6.48}{\ignorespaces Giao diện nhập thông tin để tra cứu sách đang mượn}}{110}{figure.caption.91}%
+\contentsline {figure}{\numberline {6.49}{\ignorespaces Hộp thoại xác nhận hoàn trả tài liệu}}{111}{figure.caption.92}%
+\contentsline {figure}{\numberline {6.50}{\ignorespaces Hộp thoại xử lý báo cáo hư hỏng sách}}{111}{figure.caption.93}%
+\contentsline {figure}{\numberline {6.51}{\ignorespaces Hộp thoại xử lý báo cáo mất sách}}{111}{figure.caption.93}%
+\contentsline {figure}{\numberline {6.52}{\ignorespaces Thư điện tử xác nhận giao dịch trả sách thành công}}{112}{figure.caption.94}%
+\contentsline {figure}{\numberline {6.53}{\ignorespaces Giao diện trung tâm điều hành dành cho Thủ thư}}{114}{figure.caption.96}%
+\contentsline {figure}{\numberline {6.54}{\ignorespaces Giao diện Danh sách bản sao trong hệ thống quản lý thư viện}}{116}{figure.caption.97}%
+\contentsline {figure}{\numberline {6.55}{\ignorespaces Giao diện quản lý danh mục ấn phẩm tập trung}}{117}{figure.caption.98}%
+\contentsline {figure}{\numberline {6.56}{\ignorespaces Giao diện hiệu chỉnh siêu dữ liệu của ấn phẩm}}{118}{figure.caption.99}%
+\contentsline {figure}{\numberline {6.57}{\ignorespaces Quản lý ảnh bìa và tệp tin tài liệu số}}{119}{figure.caption.100}%
+\contentsline {figure}{\numberline {6.58}{\ignorespaces Giao diện nhập thông tin chi tiết ấn phẩm}}{120}{figure.caption.101}%
+\contentsline {figure}{\numberline {6.59}{\ignorespaces Giao diện chọn tệp đính kèm}}{121}{figure.caption.102}%
+\contentsline {figure}{\numberline {6.60}{\ignorespaces Bảng điều khiển trạng thái tải lên}}{121}{figure.caption.102}%
+\contentsline {figure}{\numberline {6.61}{\ignorespaces Giao diện nhập thông tin để tra cứu sách đang mượn}}{122}{figure.caption.103}%
+\contentsline {figure}{\numberline {6.62}{\ignorespaces Hộp thoại xác nhận hoàn trả tài liệu}}{123}{figure.caption.104}%
+\contentsline {figure}{\numberline {6.63}{\ignorespaces Hộp thoại xử lý báo cáo hư hỏng sách}}{123}{figure.caption.105}%
+\contentsline {figure}{\numberline {6.64}{\ignorespaces Hộp thoại xử lý báo cáo mất sách}}{123}{figure.caption.105}%
+\contentsline {figure}{\numberline {6.65}{\ignorespaces Thư điện tử xác nhận giao dịch trả sách thành công}}{124}{figure.caption.106}%
+\contentsline {figure}{\numberline {6.66}{\ignorespaces Giao diện quản lý thu phí phạt tại quầy}}{125}{figure.caption.108}%
+\contentsline {figure}{\numberline {6.67}{\ignorespaces Giao diện Thống kê tổng quát và danh sách các khoản phí chưa thanh toán}}{127}{figure.caption.109}%
+\contentsline {figure}{\numberline {6.68}{\ignorespaces Giao diện hiển thị lịch sử các khoản phí đã hoàn tất thanh toán}}{127}{figure.caption.110}%
+\contentsline {figure}{\numberline {6.69}{\ignorespaces Giao diện danh sách sách đang mượn và chờ lấy}}{128}{figure.caption.111}%
+\contentsline {figure}{\numberline {6.70}{\ignorespaces Giao diện lịch sử mượn trả tài liệu}}{129}{figure.caption.112}%
+\contentsline {figure}{\numberline {6.71}{\ignorespaces Chi tiết trạng thái giao dịch}}{129}{figure.caption.113}%
+\contentsline {figure}{\numberline {6.72}{\ignorespaces Thông tin biên nhận mượn sách}}{129}{figure.caption.113}%
+\contentsline {figure}{\numberline {6.73}{\ignorespaces Giao diện quản lý danh sách mượn trả tổng thể dành cho Thủ thư}}{130}{figure.caption.114}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {7.1}{\ignorespaces Kết quả kiểm thử đơn vị Backend (\texttt {mvn test -pl library-circulation-module})}}{135}{figure.caption.118}%
+\contentsline {figure}{\numberline {7.2}{\ignorespaces Kết quả kiểm thử đơn vị Frontend (\texttt {npm test})}}{136}{figure.caption.119}%
+\contentsline {figure}{\numberline {7.3}{\ignorespaces Kết quả kiểm thử tích hợp --- Surefire HTML Report (\texttt {library-bootstrap/target/reports/surefire.html})}}{138}{figure.caption.121}%
+\contentsline {figure}{\numberline {7.4}{\ignorespaces Kết quả kiểm thử API --- Postman Collection Runner}}{139}{figure.caption.123}%
+\contentsline {figure}{\numberline {7.5}{\ignorespaces Kết quả kiểm thử hiệu năng k6 --- tất cả thresholds đạt yêu cầu}}{140}{figure.caption.125}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {8.1}{\ignorespaces Docker}}{142}{figure.caption.127}%
+\contentsline {figure}{\numberline {8.2}{\ignorespaces Kiến trúc triển khai hệ thống}}{144}{figure.caption.128}%
+\contentsline {figure}{\numberline {8.3}{\ignorespaces Luồng traffic qua các container trong môi trường sản xuất}}{146}{figure.caption.130}%
+\contentsline {figure}{\numberline {8.4}{\ignorespaces Luồng kết nối từ tên miền đến hệ thống}}{147}{figure.caption.132}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }

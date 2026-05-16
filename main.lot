@@ -1,0 +1,38 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {4.1}{\ignorespaces Bảng đặc tả yêu cầu hệ thống}}{20}{table.4.1}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{\ignorespaces Bảng đặc tả Use Case UC-01: Tìm kiếm sách}}{23}{table.caption.4}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Bảng đặc tả Use Case UC-02: Đăng ký tài khoản}}{24}{table.caption.5}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Bảng đặc tả Use Case UC-08: Mượn sách}}{25}{table.caption.6}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Bảng đặc tả Use Case UC-09: Trả sách}}{26}{table.caption.7}%
+\contentsline {table}{\numberline {5.6}{\ignorespaces Bảng so sánh các công nghệ Front-end}}{37}{table.caption.18}%
+\contentsline {table}{\numberline {5.8}{\ignorespaces Bảng so sánh các công nghệ Back-end}}{38}{table.caption.19}%
+\contentsline {table}{\numberline {5.9}{\ignorespaces Bảng quy đổi điểm tương tác cho mô hình ALS}}{44}{table.caption.29}%
+\contentsline {table}{\numberline {5.10}{\ignorespaces Đánh giá kiến trúc lai so với các chỉ số}}{49}{table.caption.32}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {6.1}{\ignorespaces Stack công nghệ AI}}{71}{table.caption.48}%
+\contentsline {table}{\numberline {6.2}{\ignorespaces Đặc tả dữ liệu đầu vào (Request Body)}}{75}{table.caption.52}%
+\contentsline {table}{\numberline {6.4}{\ignorespaces Cấu trúc dữ liệu yêu cầu (Request Body) hoàn tất hồ sơ}}{82}{table.caption.58}%
+\contentsline {table}{\numberline {6.6}{\ignorespaces Danh sách các API phân hệ Thông tin cá nhân}}{88}{table.caption.66}%
+\contentsline {table}{\numberline {6.8}{\ignorespaces Danh sách API Quản lý sách yêu thích}}{97}{table.caption.73}%
+\contentsline {table}{\numberline {6.10}{\ignorespaces Danh sách API Quản lý thông báo}}{109}{table.caption.90}%
+\contentsline {table}{\numberline {6.12}{\ignorespaces Trạng thái bản sao và Phí phạt tương ứng sau khi trả sách}}{113}{table.caption.95}%
+\contentsline {table}{\numberline {6.14}{\ignorespaces Trạng thái bản sao và Phí phạt tương ứng sau khi trả sách}}{125}{table.caption.107}%
+\contentsline {table}{\numberline {6.16}{\ignorespaces Quy ước hiển thị trạng thái mượn trả}}{131}{table.caption.115}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {7.1}{\ignorespaces Danh sách test case kiểm thử đơn vị Backend}}{134}{table.caption.116}%
+\contentsline {table}{\numberline {7.2}{\ignorespaces Danh sách test case kiểm thử đơn vị Frontend}}{135}{table.caption.117}%
+\contentsline {table}{\numberline {7.3}{\ignorespaces Danh sách test case kiểm thử tích hợp --- Luồng mượn sách}}{137}{table.caption.120}%
+\contentsline {table}{\numberline {7.4}{\ignorespaces Tổng quan Postman Collection}}{138}{table.caption.122}%
+\contentsline {table}{\numberline {7.5}{\ignorespaces Kết quả kiểm thử hiệu năng k6}}{140}{table.caption.124}%
+\contentsline {table}{\numberline {7.6}{\ignorespaces Tổng hợp kết quả kiểm thử}}{140}{table.caption.126}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {8.1}{\ignorespaces Các nhóm biến môi trường của hệ thống}}{145}{table.caption.129}%
+\contentsline {table}{\numberline {8.2}{\ignorespaces So sánh các nhà cung cấp VPS phổ biến}}{147}{table.caption.131}%
+\contentsline {table}{\numberline {8.3}{\ignorespaces Chi phí vận hành hệ thống ước tính}}{148}{table.caption.133}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {10.1}{\ignorespaces Danh sách các tài nguyên trực tuyến của hệ thống}}{151}{table.caption.134}%

@@ -1,0 +1,304 @@
+\documentclass[a4paper]{report}
+
+% ===================================================
+% 1. CẤU HÌNH CƠ BẢN VÀ TIẾNG VIỆT
+% ===================================================
+\usepackage[utf8]{inputenc}
+\usepackage{vntex} % Hỗ trợ tiếng Việt chuẩn
+\usepackage[a4paper, left=2cm, right=2cm, top=2cm, bottom=3.5cm]{geometry}
+\usepackage{indentfirst} % Thụt đầu dòng đoạn văn đầu tiên
+\usepackage{setspace} % Cãn giãn dòng
+\usepackage{parskip} % Xử lý khoảng cách giữa các đoạn
+
+% ===================================================
+% 2. TOÁN HỌC VÀ KHOA HỌC
+% ===================================================
+\usepackage{amsmath, amssymb, latexsym, mathtools}
+\usepackage[overload]{empheq}
+\usepackage[thinc]{esdiff} % Viết đạo hàm đẹp
+\usepackage{systeme} % Hệ phương trình
+
+% ===================================================
+% 3. HÌNH ẢNH VÀ ĐỒ HỌA
+% ===================================================
+\usepackage{graphicx} % Chuẩn mới thay cho graphics/epsfig
+\usepackage{subcaption} % Hình phụ (a, b)
+\usepackage{float} % Để dùng [H] cho hình ảnh đứng yên
+\usepackage{placeins} % Lệnh \FloatBarrier
+\usepackage{tikz} % Vẽ hình vector
+\usetikzlibrary{arrows,snakes,backgrounds,calc}
+
+% ===================================================
+% 4. BẢNG BIỂU (TABLES)
+% ===================================================
+\usepackage{array, tabularx, caption}
+\usepackage{ltablex, multirow, multicol}
+\usepackage{hhline}
+\usepackage{colortbl} % Tô màu bảng
+\usepackage{longtable}
+
+% ===================================================
+% 5. ĐỊNH DẠNG VÀ KHUNG (FORMATTING & FRAMES)
+% ===================================================
+\usepackage[table]{xcolor} % Gom xcolor vào 1 chỗ
+\usepackage{titlesec} % Định dạng tiêu đề chương/mục
+\usepackage{mdframed} % Khung văn bản
+\usepackage{tcolorbox} % Hộp màu đẹp hơn
+\usepackage{longfbox}
+\usepackage{fancyhdr} % Header và Footer
+\usepackage{enumitem} % Thay thế cho enumerate, mạnh mẽ hơn
+
+% ===================================================
+% 6. CODE VÀ THUẬT TOÁN
+% ===================================================
+\usepackage[lined,boxed,commentsnumbered]{algorithm2e}
+\usepackage{listings}
+\usepackage{courier} % Font chữ cho code
+
+\usepackage{amsmath, amssymb, amsfonts} % Toán học
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{indentfirst}
+\usepackage{float}     % Để cố định vị trí hình ảnh/bảng [H]
+\usepackage{booktabs}  % Kẻ bảng đẹp (\toprule, \midrule)
+\usepackage{xcolor}
+\usepackage{array}     % Căn chỉnh bảng tốt hơn
+\usepackage{longtable} % Bảng dài qua trang
+\usepackage{listings}  % Hiển thị code/SQL
+
+\usepackage{xurl}
+
+% --- CẤU HÌNH CODE LISTING ---
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!10},
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{green!50!black},
+  stringstyle=\color{red},
+  showstringspaces=false
+}
+
+% --- CẤU HÌNH VẼ HÌNH (TIKZ) ---
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning, fit, backgrounds, calc, shadows}
+
+% --- ĐỊNH DẠNG ---
+\setlength{\parskip}{6pt}
+\renewcommand{\baselinestretch}{1.2}
+
+% --- FLOAT SPACING (giảm khoảng trắng quanh ảnh) ---
+\setlength{\textfloatsep}{10pt plus 2pt minus 4pt}
+\setlength{\floatsep}{8pt plus 2pt minus 4pt}
+\setlength{\intextsep}{8pt plus 2pt minus 4pt}
+\setlength{\dbltextfloatsep}{10pt plus 2pt minus 4pt}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.70}
+\renewcommand{\textfraction}{0.10}
+\renewcommand{\floatpagefraction}{0.80}
+
+% --- LỆNH TIỆN ÍCH: link nhảy đến hình ---
+% Dùng: \figref{fig:label} -> "Hình X.Y" có thể click
+\newcommand{\figref}[1]{\hyperref[#1]{Hình~\ref*{#1}}}
+
+% Định nghĩa màu cho code
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+% Cấu hình listings
+\lstset{
+  frame=tb,
+  language=R, % Mặc định là R, có thể đổi khi dùng
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+\usepackage{tikz} 
+\usetikzlibrary{shapes, arrows.meta, shapes.geometric, positioning, fit, backgrounds, shadows, matrix}
+% ===================================================
+% 7. TẠO MỤC LỤC VÀ LIÊN KẾT (LOAD CUỐI CÙNG)
+% ===================================================
+\usepackage{tocloft} % Định dạng mục lục
+\usepackage{lastpage} % Đếm tổng số trang
+\usepackage{hyperref} % Tạo link (thường load cuối cùng để tránh lỗi)
+\usepackage{fancyvrb}
+% Cấu hình Hyperref
+\hypersetup{
+    urlcolor=black,
+    linkcolor=black,
+    citecolor=black,
+    colorlinks=true
+}
+% Cấu hình tiêu đề chương (Chapter)
+\titlespacing*{\chapter}{0pt}{0pt}{40pt}
+\titleformat{\chapter}[hang]
+  {\normalfont\Large\bfseries}
+  {Chương \thechapter:}
+  {1em}
+  {}
+
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{2}
+
+% Cấu hình Paragraph
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+% Cấu hình Mục lục
+\renewcommand{\cfttoctitlefont}{\hfill\Huge\bfseries}
+\renewcommand{\cftaftertoctitle}{\hfill}
+\renewcommand{\contentsname}{Mục lục}
+
+% ===================================================
+% 8. HEADER & FOOTER SETUP
+% ===================================================
+\setlength{\headheight}{40pt}
+\pagestyle{fancy}
+\fancyhead{} % clear all header fields
+\fancyhead[L]{
+ \begin{tabular}{rl}
+    \begin{picture}(25,15)(0,0)
+    \put(0,-8){\includegraphics[width=8mm, height=8mm]{images/hcmut.jpg}}
+    \end{picture}&
+    \begin{tabular}{l}
+        \textbf{\bf \ttfamily  TRƯỜNG ĐẠI HỌC BÁCH KHOA - ĐHQG-HCM}\\
+        \textbf{\bf \ttfamily  KHOA KHOA HỌC VÀ KỸ THUẬT MÁY TÍNH }
+    \end{tabular}
+ \end{tabular}
+}
+\fancyhead[R]{} % Bên phải header để trống
+\fancyfoot{} % clear all footer fields
+\fancyfoot[L]{\scriptsize \ttfamily ĐỒ ÁN CHUYÊN NGÀNH - CO4029}
+\fancyfoot[R]{\scriptsize \ttfamily Trang {\thepage}/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt}
+
+% Áp dụng header/footer cho trang đầu chương (thường trang chapter sẽ trắng trơn, lệnh này ép nó hiện)
+\makeatletter
+\let\ps@plain\ps@fancy
+\makeatother
+
+% ===================================================
+% BẮT ĐẦU NỘI DUNG DOCUMENT
+% ===================================================
+\begin{document}
+
+% --- TRANG BÌA ---
+\begin{titlepage}
+    \begin{tikzpicture}[remember picture,overlay,inner sep=0,outer sep=0]
+         \draw[blue!70!black,line width=4pt] ([xshift=-1.5cm,yshift=-2cm]current page.north east) coordinate (A)--([xshift=2.4cm,yshift=-2cm]current page.north west) coordinate(B)--([xshift=2.4cm,yshift=2cm]current page.south west) coordinate (C)--([xshift=-1.5cm,yshift=2cm]current page.south east) coordinate(D)--cycle;
+
+         \draw ([yshift=0.5cm,xshift=-0.5cm]A)-- ([yshift=0.5cm,xshift=0.5cm]B)--
+         ([yshift=-0.5cm,xshift=0.5cm]B) --([yshift=-0.5cm,xshift=-0.5cm]B)--([yshift=0.5cm,xshift=-0.5cm]C)--([yshift=0.5cm,xshift=0.5cm]C)--([yshift=-0.5cm,xshift=0.5cm]C)-- ([yshift=-0.5cm,xshift=-0.5cm]D)--([yshift=0.5cm,xshift=-0.5cm]D)--([yshift=0.5cm,xshift=0.5cm]D)--([yshift=-0.5cm,xshift=0.5cm]A)--([yshift=-0.5cm,xshift=-0.5cm]A)--([yshift=0.5cm,xshift=-0.5cm]A);
+
+         \draw ([yshift=-0.3cm,xshift=0.3cm]A)-- ([yshift=-0.3cm,xshift=-0.3cm]B)--
+         ([yshift=0.3cm,xshift=-0.3cm]B) --([yshift=0.3cm,xshift=0.3cm]B)--
+         ([yshift=-0.3cm,xshift=0.3cm]C)--([yshift=-0.3cm,xshift=-0.3cm]C)--([yshift=0.3cm,xshift=-0.3cm]C)-- ([yshift=0.3cm,xshift=0.3cm]D)--([yshift=-0.3cm,xshift=0.3cm]D)--([yshift=-0.3cm,xshift=-0.3cm]D)--([yshift=0.3cm,xshift=-0.3cm]A)--([yshift=0.3cm,xshift=0.3cm]A)--([yshift=-0.3cm,xshift=0.3cm]A);
+    \end{tikzpicture}
+
+    \begin{center}
+     ĐẠI HỌC QUỐC GIA THÀNH PHỐ HỒ CHÍ MINH \\
+     TRƯỜNG ĐẠI HỌC BÁCH KHOA \\
+     \textbf{KHOA KHOA HỌC VÀ KỸ THUẬT MÁY TÍNH}
+    \end{center}
+
+    \vspace{0.5cm}
+
+    \begin{figure}[h!]
+    \begin{center}
+     \includegraphics[width=3cm]{images/hcmut.jpg}
+    \end{center}
+    \end{figure}
+
+    \vspace{0.5cm}
+
+    \begin{center}
+    \begin{tabular}{c}
+    \textbf{\Large BÁO CÁO ĐỒ ÁN CHUYÊN NGÀNH - GĐ1}\\
+    \\
+    \hline
+    \\
+    \textbf{\large{XÂY DỰNG HỆ THỐNG QUẢN LÝ THƯ VIỆN TRỰC TUYẾN}} \\
+    \textbf{\large{TÍCH HỢP AI HỖ TRỢ TÌM KIẾM VÀ GỢI Ý SÁCH}}\\
+    \vspace{0.5cm}
+    \textbf{\huge }\\
+    \hline
+    \end{tabular}
+    \end{center}
+
+    \vspace{1cm}
+    \begin{center}
+        \textbf{\large ProjectID: HK251-DAGD1-512} \\
+        \textbf{\large NHÓM: HAI ANH TRAI QUẢNG TRỊ} \\
+    \end{center}
+    \vspace{2cm}
+    
+    \begin{table}[h]
+        \centering
+        \begin{tabular}{rrl}
+             & Giảng viên hướng dẫn: & TS. Trương Tuấn Anh \\
+             &                       & CN. Dương Huỳnh Anh Đức \\
+             & Thành viên:           & Võ Quang Thắng - 2213214\\
+             &                       & Hồ Sỹ Thắng - 2213188\\
+        \end{tabular}
+    \end{table}
+    
+    \vspace{2cm}
+    \begin{center}
+    {\footnotesize TPHCM, tháng 10 năm 2025}
+    \end{center}
+\end{titlepage}
+
+\newpage
+% Đảm bảo bạn có các file này trong thư mục content/
+\input{content/i.Loi_Cam_On}
+\newpage
+\input{content/ii.Tom_Tat}
+\newpage
+\input{content/phancong}
+\newpage
+
+% Table of contents
+\tableofcontents
+\newpage
+\FloatBarrier
+\listoffigures
+\vspace{0.5cm}
+\newpage
+\listoftables
+\newpage
+
+% Nội dung chính
+\input{content/I.Introdution_project}
+\input{content/II.knowledgeAndTechnology}
+\input{content/III.relatedWorks}
+\input{content/IV.System_proposal}
+\input{content/V.Analysis_and_Design}
+\input{content/VI.implement}
+\input{content/VII.chapter5_testing.tex}
+\input{content/VIII.chapter6_deployment.tex}
+\input{content/VI.Tong_Ket}
+\input{content/VII.Resources}
+% Tài liệu tham khảo
+\newpage
+\addcontentsline{toc}{chapter}{Tài liệu tham khảo}
+\renewcommand{\bibname}{Tài liệu tham khảo} % Đổi tên References thành Tiếng Việt
+\bibliographystyle{IEEEtran}
+\nocite{*}
+\bibliography{references} % Đảm bảo file references.bib tồn tại
+
+\end{document}

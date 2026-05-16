@@ -1,0 +1,87 @@
+MÔ TẢ CHI TIẾT API: ĐĂNG KÝ TÀI KHOẢN (USER REGISTRATION)
+
+  1. Thông tin chung
+   * Mô tả: Tiếp nhận thông tin đăng ký từ sinh viên, khởi tạo tài khoản và kích hoạt quy trình xác thực email.
+   * Endpoint: POST /api/v1/auth/register
+   * Định dạng dữ liệu: application/json
+
+  2. Đặc tả dữ liệu đầu vào (Request Body)
+  Hệ thống áp dụng các quy tắc kiểm soát dữ liệu (Validation) chặt chẽ tại tầng Application:
+
+  ┌───────────┬────────┬─────────────────────────────────────────┬────────────────────────────────────┐
+  │ Trường    │ Kiểu   │ Ràng buộc kỹ thuật                      │ Ý nghĩa nghiệp vụ                  │
+  ├───────────┼────────┼─────────────────────────────────────────┼────────────────────────────────────┤
+  │ fullName  │ String │ @Pattern (Chỉ chứa chữ và khoảng trắng) │ Tên đầy đủ của sinh viên.          │
+  │ studentId │ String │ @Pattern (Đúng 7 chữ số)                │ Mã số sinh viên chính quy.         │
+  │ email     │ String │ @Pattern (Đuôi @hcmut.edu.vn)           │ Email định danh do nhà trường cấp. │
+  │ password  │ String │ Tối thiểu 4 ký tự                       │ Mật khẩu truy cập hệ thống.        │
+  │ faculty   │ Enum   │ Theo danh sách Khoa                     │ Khoa mà sinh viên đang theo học.   │
+  └───────────┴────────┴─────────────────────────────────────────┴────────────────────────────────────┘
+
+  3. Luồng xử lý nghiệp vụ (Business Logic)
+  Quy trình thực hiện theo các bước:
+   1. Kiểm tra điều kiện: Hệ thống kiểm tra xem email đã được đăng ký trước đó hay chưa.
+   2. Khởi tạo tài khoản:
+       * Tài khoản mới được mặc định gán vai trò STUDENT.
+       * Trạng thái ban đầu là INACTIVE (Chưa kích hoạt).
+       * Thiết lập các thông số mặc định: Điểm tín nhiệm (Credit Score = 100) và bật đề xuất cá nhân hóa bằng AI.
+   3. Xác thực: Phát hành một yêu cầu gửi email kích hoạt chứa mã xác thực (Token) đến địa chỉ email sinh viên đã cung
+      cấp.
+
+  4. Giải pháp kỹ thuật và Kiến trúc (Technical Implementation)
+  Đây là phần cốt lõi thể hiện trình độ kỹ thuật trong báo cáo:
+
+   * Kiến trúc Domain-Driven Design (DDD): Logic đăng ký được đóng gói trong SignUpUseCase. Thực thể User tự quản lý
+     trạng thái và phát sinh các Domain Event (UserRegisteredEvent) khi có thay đổi quan trọng.
+   * Bảo mật dữ liệu: Sử dụng Interface PasswordHasher để trừu tượng hóa thuật toán mã hóa mật khẩu (BCrypt/Argon2), đảm
+     bảo mật khẩu không bao giờ được lưu dưới dạng văn bản thuần túy (Plaintext).
+   * Xử lý bất đồng bộ với Kafka (Event-Driven):
+       * Sau khi lưu User thành công vào Database, một sự kiện được đẩy vào Kafka topic user.registered.
+       * Dịch vụ gửi Email (Consumer) sẽ lắng nghe topic này để xử lý việc gửi thư.
+       * Lợi ích: Giúp giảm thời gian phản hồi (Response time) cho người dùng và tách biệt (Decoupling) giữa logic đăng
+         ký và logic gửi mail.
+   * Quản lý giao dịch (Transaction): Sử dụng @Transactional để đảm bảo tính nhất quán (ACID). Nếu quá trình lưu
+     database lỗi, sự kiện gửi email sẽ không được phát đi.
+
+  5. Sơ đồ tuần tự (Sequence Diagram)
+
+    1 sequenceDiagram
+    2     participant Client
+    3     participant AuthController
+    4     participant SignUpUseCase
+    5     participant DB as MySQL Database
+    6     participant Kafka as Kafka Broker
+    7     participant EmailConsumer
+    8     participant SMTP as Email Server
+    9
+   10     Client->>AuthController: POST /register (Data)
+   11     Note over AuthController: Validation (Regex, NotBlank)
+   12     AuthController->>SignUpUseCase: execute(Request)
+   13
+   14     SignUpUseCase->>DB: Check Duplicate Email
+   15     SignUpUseCase->>SignUpUseCase: Hash Password
+   16     SignUpUseCase->>DB: Save User (Status: INACTIVE)
+   17
+   18     SignUpUseCase->>Kafka: Publish UserRegisteredEvent
+   19     SignUpUseCase-->>AuthController: Success
+   20     AuthController-->>Client: 200 OK (Register successful)
+   21
+   22     Note over EmailConsumer: Asynchronous Processing
+   23     Kafka->>EmailConsumer: Consume Event
+   24     EmailConsumer->>SMTP: Send Activation Email
+
+  6. Cấu trúc phản hồi (Sample Response)
+   * Thành công (200):
+
+   1     {
+   2       "status": "success",
+   3       "message": "Register successful",
+   4       "data": null
+   5     }
+   * Lỗi nghiệp vụ (409 Conflict):
+
+   1     {
+   2       "status": "error",
+   3       "message": "Email already exists",
+   4       "code": "EMAIL_ALREADY_EXISTS"
+   5     }

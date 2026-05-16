@@ -1,0 +1,131 @@
+ Endpoint A — POST /api/v1/transactions/borrow
+
+  Auth: Authenticated (Student) | Response: 201 Created
+
+  Request body:
+
+  ┌────────┬──────┬──────────┐
+  │ Field  │ Type │ Required │
+  ├────────┼──────┼──────────┤
+  │ itemId │ Long │ ✅       │
+  └────────┴──────┴──────────┘
+
+  Validation (theo thứ tự):
+
+  ┌─────┬──────────────────────────────┬───────────────────────────────────┐
+  │  #  │          Điều kiện           │             ErrorCode             │
+  ├─────┼──────────────────────────────┼───────────────────────────────────┤
+  │ 1   │ Item phải AVAILABLE          │ ITEM_NOT_BORROWABLE (2103)        │
+  ├─────┼──────────────────────────────┼───────────────────────────────────┤
+  │ 2   │ User ≤ 5 active borrows      │ USER_BORROW_LIMIT_EXCEEDED (3002) │
+  ├─────┼──────────────────────────────┼───────────────────────────────────┤
+  │ 3   │ Không có fine UNPAID         │ USER_HAS_UNPAID_FINES (3007)      │
+  ├─────┼──────────────────────────────┼───────────────────────────────────┤
+  │ 4   │ Chưa mượn cùng publicationId │ RESERVATION_ALREADY_EXISTS (3005) │
+  └─────┴──────────────────────────────┴───────────────────────────────────┘
+
+  State transition:
+  Item: AVAILABLE → RESERVED
+  Transaction: tạo mới → WAITING_FOR_PICKUP
+    pickedUpDeadline = now + 24h
+    dueDate          = today + 14 ngày (mặc định)
+
+  Kafka:
+
+  ┌───────────────────┬────────────────────────┬──────────────────────┐
+  │       Topic       │          Type          │       Nội dung       │
+  ├───────────────────┼────────────────────────┼──────────────────────┤
+  │ notification.send │ BORROW_SUCCESS         │ "Bạn đã đặt mượn..." │
+  ├───────────────────┼────────────────────────┼──────────────────────┤
+  │ library.email     │ BORROW_PICKUP_REMINDER │ Email nhắc nhận sách │
+  └───────────────────┴────────────────────────┴──────────────────────┘
+
+  Response — BorrowTransactionResponse:
+  transactionId, itemId, barcode, publicationId, publicationTitle, branch, location, pickedUpDeadline, dueDate, status
+
+  ---
+  Endpoint B — POST /api/v1/transactions/borrow-direct
+
+  Auth: LIBRARIAN | Response: 201 Created
+
+  Request body:
+
+  ┌───────────┬────────┬──────────┐
+  │   Field   │  Type  │ Required │
+  ├───────────┼────────┼──────────┤
+  │ studentId │ String │ ✅       │
+  ├───────────┼────────┼──────────┤
+  │ barcode   │ String │ ✅       │
+  └───────────┴────────┴──────────┘
+
+  Logic đặc biệt so với /borrow:
+  Nếu item là RESERVED:
+    → Cho phép NẾU user này có Reservation READY_FOR_PICKUP cho đúng item đó
+    → Đánh dấu Reservation → COMPLETED
+  Nếu item không phải AVAILABLE hoặc RESERVED của đúng user → ITEM_NOT_BORROWABLE
+
+  State transition:
+  Item: AVAILABLE/RESERVED → BORROWED (ngay lập tức, không qua WAITING_FOR_PICKUP)
+  Transaction: tạo mới → BORROWING ngay
+    dueDate          = today + 14 ngày
+    librarianIdIssue = id thủ thư đang thao tác
+
+  Kafka: notification.send → PICKUP_CONFIRMED ("Bạn đã mượn... Hạn trả: ...")
+
+  Lỗi: USER_NOT_FOUND (1100), ITEM_NOT_BORROWABLE (2103), USER_BORROW_LIMIT_EXCEEDED (3002), USER_HAS_UNPAID_FINES
+  (3007)
+
+  ---
+  Endpoint C — GET /api/v1/transactions/lookup
+
+  Auth: LIBRARIAN | Response: 200 OK
+
+  Query params (ít nhất 1 trong 2 cách):
+
+  ┌───────────────────┬───────────────────────────────────────┐
+  │       Cách        │                Params                 │
+  ├───────────────────┼───────────────────────────────────────┤
+  │ Qua QR            │ transactionId (Long)                  │
+  ├───────────────────┼───────────────────────────────────────┤
+  │ Qua thẻ + barcode │ studentId (String) + barcode (String) │
+  └───────────────────┴───────────────────────────────────────┘
+
+  Logic:
+  Tìm transaction có status = WAITING_FOR_PICKUP
+    → theo transactionId chính xác, HOẶC
+    → theo (studentId + barcode) khớp cả 2
+  Không tìm thấy → TRANSACTION_NOT_FOUND (3000)
+
+  Response — LookupTransactionResponse:
+  transactionId, userId, studentId, fullName, itemId, barcode, publicationId, publicationTitle, branch, location,
+  pickedUpDeadline, status
+
+  Lỗi: INVALID_REQUEST (1001), TRANSACTION_NOT_FOUND (3000)
+
+  ---
+  Endpoint D — POST /api/v1/transactions/{id}/confirm-pickup
+
+  Auth: LIBRARIAN | Response: 200 OK — BorrowTransactionResponse
+
+  Path variable: id (Long) — transaction ID
+
+  Logic:
+  1. Tìm transaction → TRANSACTION_NOT_FOUND (3000)
+  2. Domain check: status phải là WAITING_FOR_PICKUP (enforce ở domain layer)
+  3. Update transaction:
+     status           : WAITING_FOR_PICKUP → BORROWING
+     borrowedDate     = now
+     librarianIdIssue = id thủ thư
+     dueDate          = today + 14 ngày
+  4. Update item: RESERVED → BORROWED
+
+  Kafka: notification.send → PICKUP_CONFIRMED ("Bạn đã nhận '{title}'. Hạn trả: {date}")
+
+  ---
+  So sánh 2 luồng mượn
+
+  Web flow (Student tự đặt):
+    /borrow → WAITING_FOR_PICKUP → (thủ thư scan QR) → /confirm-pickup → BORROWING
+
+  Direct flow (Thủ thư tại quầy):
+    /borrow-direct → BORROWING (ngay, bỏ qua WAITING_FOR_PICKUP)

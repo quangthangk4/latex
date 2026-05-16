@@ -1,0 +1,103 @@
+% File: I.Introduction_project.tex
+% Nội dung Chương 1: Giới thiệu
+
+\chapter{Giới thiệu}
+\label{chap:GioiThieu}
+
+Chương này trình bày tổng quan về đề tài, bao gồm lý do lựa chọn, các mục tiêu cần đạt được, phạm vi nghiên cứu, ý nghĩa khoa học và thực tiễn của dự án, đồng thời giới thiệu cấu trúc tổng thể của báo cáo.
+% ------------------------------------
+\section{Động cơ của đề tài}
+\label{sec:DongCo}
+
+Trong bối cảnh chuyển đổi số giáo dục đang diễn ra mạnh mẽ, việc hiện đại hóa các hệ thống thư viện tại trường đại học là một yêu cầu cấp thiết. Các hệ thống thư viện hiện tại, như Koha hay Opac-HCMUT, dù đáp ứng được nhu cầu quản lý cơ bản nhưng vẫn còn nhiều hạn chế. Cụ thể, các hệ thống này chủ yếu dựa trên tìm kiếm từ khóa đơn giản, chưa có khả năng phân tích hành vi người dùng để đưa ra gợi ý tài liệu phù hợp, và giao diện đã cũ, chưa tối ưu cho các thiết bị di động. Thêm vào đó, công tác thống kê và báo cáo xu hướng đọc vẫn còn thực hiện thủ công, gây tốn nhiều thời gian và công sức cho các thủ thư.
+
+Từ thực tiễn đó, có một nhu cầu rõ rệt từ các bên liên quan:
+\begin{itemize}
+    \item \textbf{Sinh viên và giảng viên:} Cần một công cụ tìm kiếm tài liệu nhanh chóng, chính xác và được gợi ý các tài liệu liên quan để phục vụ học tập, nghiên cứu.
+    \item \textbf{Thủ thư và nhà quản lý:} Mong muốn có một hệ thống tự động hóa các công việc lặp lại, cung cấp báo cáo và thống kê trực quan để nâng cao hiệu quả quản lý.
+    \item \textbf{Nhà trường:} Hướng tới việc thúc đẩy văn hóa đọc và năng lực số của sinh viên thông qua một nền tảng thư viện hiện đại.
+\end{itemize}
+
+Vì vậy, việc phát triển một \textbf{"Hệ thống quản lý thư viện trực tuyến tích hợp AI hỗ trợ tìm kiếm và gợi ý sách"} là hoàn toàn cần thiết, không chỉ để giải quyết các hạn chế của hệ thống cũ mà còn để đón đầu xu hướng công nghệ trong giáo dục đại học.
+
+\section{Mục tiêu}
+\label{sec:MucTieu}
+
+Đề tài đặt ra mục tiêu tổng quát là xây dựng một hệ thống quản lý thư viện trực tuyến thông minh, vừa đảm bảo các chức năng quản lý cốt lõi, vừa tích hợp AI/NLP để nâng cao trải nghiệm tìm kiếm và đọc sách cho người dùng.
+
+Các mục tiêu cụ thể bao gồm:
+\begin{itemize}
+    \item \textbf{Xây dựng hệ thống quản lý thư viện trực tuyến:} Cung cấp đầy đủ các chức năng cơ bản như quản lý sách, tác giả, thể loại, người dùng, và các hoạt động mượn - trả.
+    \item \textbf{Ứng dụng AI/NLP để nâng cao trải nghiệm:}
+    \begin{itemize}
+        \item Phát triển công cụ tìm kiếm ngữ nghĩa, hỗ trợ tiếng Việt, có khả năng hiểu ngữ cảnh và từ đồng nghĩa.
+        \item Xây dựng hệ thống gợi ý sách được cá nhân hóa dựa trên lịch sử mượn và sở thích của người dùng.
+        \item Tích hợp tính năng tự động sinh tóm tắt nội dung sách để người dùng tham khảo nhanh.
+    \end{itemize}
+    \item \textbf{Hỗ trợ công tác quản lý:} Tự động hóa việc thống kê và tạo báo cáo về xu hướng đọc, sách được mượn nhiều, giúp thủ thư dễ dàng theo dõi tình trạng mượn - trả và phí phạt.
+    \item \textbf{Đảm bảo khả năng triển khai và mở rộng:} Xây dựng hệ thống với kiến trúc mở, sẵn sàng cho việc áp dụng thử nghiệm tại thư viện cấp trường/khoa và dễ dàng nâng cấp trong tương lai.
+\end{itemize}
+
+\section{Phạm vi}
+\label{sec:PhamVi}
+
+Đề tài sẽ tập trung vào các phạm vi nghiên cứu và phát triển như sau:
+\begin{itemize}
+    \item \textbf{Về chức năng quản lý:} Hệ thống sẽ thực hiện các chức năng cốt lõi bao gồm quản lý sách, tác giả, người dùng, xử lý mượn - trả, hạn trả, phí phạt và tạo các báo cáo thống kê cần thiết.
+    
+    \item \textbf{Về ứng dụng AI:}
+    \begin{itemize}
+        \item Xây dựng một hệ thống tìm kiếm ngữ nghĩa hỗ trợ tiếng Việt, xử lý được các vấn đề như chính tả, từ đồng nghĩa và truy vấn không dấu.
+        \item Tích hợp một hệ thống gợi ý cá nhân hóa dựa trên lịch sử và hành vi mượn sách của người dùng.
+        \item Phát triển một mô-đun sinh tóm tắt nội dung sách.
+    \end{itemize}
+    
+    \item \textbf{Về nền tảng công nghệ:} Hệ thống được phát triển theo kiến trúc tách biệt giữa backend (xử lý logic nghiệp vụ) và frontend (giao diện người dùng), sử dụng cơ sở dữ liệu quan hệ và tích hợp các mô hình AI/NLP phù hợp.
+    
+    \item \textbf{Về phạm vi triển khai:} Sản phẩm của đề tài là một mô hình thử nghiệm (prototype), được kiểm chứng trên một bộ dữ liệu giới hạn (giáo trình, sách tham khảo) ở quy mô một thư viện cấp khoa hoặc trường.
+\end{itemize}
+
+\section{Ý nghĩa}
+\label{sec:YNghia}
+
+\subsection{Ý nghĩa thực tiễn}
+\label{subsec:YNghiaThucTien}
+\begin{itemize}
+    \item \textbf{Nâng cao trải nghiệm người dùng:} Giúp sinh viên và giảng viên tìm kiếm tài liệu nhanh hơn và tiếp cận nguồn tài nguyên tri thức một cách dễ dàng hơn.
+    \item \textbf{Tối ưu hóa công tác quản lý:} Giảm tải công việc thủ công cho thủ thư thông qua các chức năng thống kê, báo cáo tự động, từ đó tiết kiệm thời gian và nguồn nhân lực.
+    \item \textbf{Thúc đẩy chuyển đổi số:} Góp phần xây dựng mô hình thư viện số hiện đại, phù hợp với chủ trương chuyển đổi số trong giáo dục và phát triển năng lực số cho sinh viên.
+\end{itemize}
+
+\subsection{Ý nghĩa khoa học}
+\label{subsec:YNghiaKhoaHoc}
+\begin{itemize}
+    \item \textbf{Ứng dụng AI/NLP vào bài toán thực tế:} Đề tài áp dụng các kỹ thuật xử lý ngôn ngữ tự nhiên và hệ thống gợi ý vào việc giải quyết bài toán tìm kiếm và gợi ý tài liệu trong môi trường thư viện tiếng Việt, một lĩnh vực còn nhiều không gian để cải tiến.
+    \item \textbf{Kết hợp mô hình và hệ thống:} Dự án là cầu nối giữa việc nghiên cứu các mô hình AI và việc triển khai chúng thành một hệ thống phần mềm hoàn chỉnh, có tính ứng dụng cao, giải quyết vấn đề mà nhiều nghiên cứu lý thuyết bỏ qua.
+    \item \textbf{Đề xuất giải pháp khả thi:} Hệ thống áp dụng mô hình gợi ý hybrid (kết hợp Content-Based và Collaborative Filtering) ở mức độ phù hợp với nguồn lực và dữ liệu của một dự án sinh viên, cho thấy hướng tiếp cận thực tế để xây dựng các hệ thống thông minh.
+\end{itemize}
+
+\section{Cấu trúc báo cáo}
+\label{sec:CauTruc}
+
+Ngoài các phần đầu mục như Tóm tắt, Mục lục, Danh mục hình ảnh và bảng biểu, nội dung chính của báo cáo được cấu trúc thành 10 chương như sau:
+\begin{itemize}
+    \item \textbf{Chương 1 - Giới thiệu:} Trình bày tổng quan về động cơ, mục tiêu, phạm vi và ý nghĩa của đề tài, đồng thời giới thiệu cấu trúc tổng thể của báo cáo.
+
+    \item \textbf{Chương 2 - Kiến thức và công nghệ nền tảng:} Trình bày các cơ sở lý thuyết, kiến thức chuyên ngành và các công nghệ cốt lõi được sử dụng để phát triển dự án.
+
+    \item \textbf{Chương 3 - Công trình liên quan:} Phân tích, so sánh các nghiên cứu và hệ thống tương tự để xác định khoảng trống nghiên cứu mà đề tài giải quyết.
+
+    \item \textbf{Chương 4 - Hệ thống đề xuất:} Mô tả tổng quan hệ thống được đề xuất, bao gồm đối tượng người dùng, yêu cầu chức năng, phi chức năng và yêu cầu dữ liệu.
+
+    \item \textbf{Chương 5 - Phân tích và Thiết kế:} Trình bày chi tiết quá trình phân tích và thiết kế hệ thống, bao gồm kiến trúc phần mềm, thiết kế cơ sở dữ liệu, thiết kế AI Service và thiết kế giao diện.
+
+    \item \textbf{Chương 6 - Hiện thực hệ thống:} Mô tả quá trình hiện thực các chức năng theo từng API, giao diện cho Độc giả và Thủ thư, cùng với pipeline xử lý dữ liệu AI.
+
+    \item \textbf{Chương 7 - Kiểm thử:} Trình bày chiến lược kiểm thử phân tầng gồm kiểm thử đơn vị, tích hợp, API và hiệu năng, kèm kết quả thực nghiệm.
+
+    \item \textbf{Chương 8 - Triển khai hệ thống:} Mô tả quá trình đóng gói Docker, cấu hình NGINX, CI/CD và triển khai lên môi trường VPS thực tế.
+
+    \item \textbf{Chương 9 - Tổng kết:} Tóm tắt kết quả đạt được, nhận xét ưu điểm và hạn chế còn tồn tại của hệ thống.
+
+    \item \textbf{Chương 10 - Tài nguyên và Mã nguồn:} Cung cấp các đường dẫn đến mã nguồn (GitHub) và bản thiết kế giao diện (Figma) của dự án.
+\end{itemize}

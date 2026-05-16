@@ -1,0 +1,118 @@
+ Endpoint A — POST /api/v1/reservations
+
+  Auth: Authenticated | Response: 201 Created
+
+  Request body:
+
+  ┌─────────────────┬────────┬──────────┐
+  │      Field      │  Type  │ Required │
+  ├─────────────────┼────────┼──────────┤
+  │ publicationId   │ Long   │ ✅       │
+  ├─────────────────┼────────┼──────────┤
+  │ preferredBranch │ String │ ✅       │
+  └─────────────────┴────────┴──────────┘
+
+  Validation (theo thứ tự):
+
+  ┌─────┬────────────────────────────────┬─────────────────────────────────────────────────────────────┐
+  │  #  │           Điều kiện            │                          ErrorCode                          │
+  ├─────┼────────────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ 1   │ Không có fine UNPAID           │ USER_HAS_UNPAID_FINES (3007)                                │
+  ├─────┼────────────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ 2   │ Số đặt trước active ≤ 2        │ RESERVATION_LIMIT_EXCEEDED (3010)                           │
+  ├─────┼────────────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ 3   │ Chưa đặt trước publication này │ RESERVATION_ALREADY_EXISTS (3011)                           │
+  ├─────┼────────────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ 4   │ Branch có ít nhất 1 bản sao    │ RESERVATION_BRANCH_NO_ITEMS (3012)                          │
+  ├─────┼────────────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ 5   │ Branch không có sách AVAILABLE │ RESERVATION_BOOK_AVAILABLE (3013) — bảo user mượn trực tiếp │
+  └─────┴────────────────────────────────┴─────────────────────────────────────────────────────────────┘
+
+  Logic:
+  → Lấy queue_position = MAX(queue_position) + 1
+  → Tạo Reservation { status = PENDING }
+  → Kafka: notification.send → BOOK_RESERVED
+
+  Response — ReservationResponse:
+
+  Field: reservationId, publicationId, publicationTitle, coverImageUrl
+  Trạng thái: Luôn có
+  ────────────────────────────────────────
+  Field: preferredBranch, status, queuePosition, reservationDate
+  Trạng thái: Luôn có
+  ────────────────────────────────────────
+  Field: assignedItemId, assignedBarcode, assignedBranch, assignedLocation, holdExpirationTime
+  Trạng thái: Chỉ có khi READY_FOR_PICKUP
+
+  ---
+  Endpoint B — DELETE /api/v1/reservations/{id}
+
+  Auth: Authenticated | Response: 200 OK
+
+  Path variable: id (Long)
+
+  Logic:
+  1. Tìm reservation → NOT_FOUND
+  2. Kiểm tra userId == currentUser → NOT_OWNER (403)
+  3. Status phải là PENDING hoặc READY_FOR_PICKUP → RESERVATION_NOT_CANCELLABLE
+  4. Reservation → CANCELLED
+
+  Nếu đang READY_FOR_PICKUP:
+    → Item: RESERVED → AVAILABLE
+    → ReservationAssignmentService.tryAssign(itemId, publicationId, branch)
+       → Tìm PENDING tiếp theo (ưu tiên đúng branch, fallback ANY)
+       → Reservation → READY_FOR_PICKUP, assignedItemId, holdExpirationTime = +48h
+       → Item → RESERVED
+       → Kafka: notification.send → BOOK_AVAILABLE
+
+  ---
+  Endpoint C — GET /api/v1/reservations/my-reservations
+
+  Auth: Authenticated | Response: 200 OK (paginated)
+
+  Query params: page (default 0), size (default 10)
+
+  SQL: JOIN reservations + publications + items (LEFT JOIN khi chưa assigned) → lấy tên sách, ảnh bìa, vị trí kho nếu đã
+   READY_FOR_PICKUP
+
+  Response: PageResponse<ReservationResponse> — toàn bộ lịch sử đặt trước
+
+  ---
+  ReservationAssignmentService — tryAssign
+
+  Input: itemId, publicationId, branch
+
+  1. SELECT reservation PENDING với publicationId + branch phù hợp
+     ORDER BY queuePosition ASC, LIMIT 1, FOR UPDATE SKIP LOCKED
+  2. Nếu có:
+     → Reservation: PENDING → READY_FOR_PICKUP
+       assignedItemId = itemId
+       holdExpirationTime = now + 48h
+     → Item: AVAILABLE → RESERVED
+     → Kafka: notification.send → BOOK_AVAILABLE
+        "Sách bạn đặt trước đã sẵn sàng, vui lòng đến lấy trước {holdExpirationTime}"
+
+  ▎ FOR UPDATE SKIP LOCKED — tránh race condition khi nhiều sách về cùng lúc
+
+  ---
+  UI — /userpage/reservations (ReservationsPage.tsx)
+
+  - Card từng đặt trước: ảnh bìa + tên sách + badge trạng thái + vị trí hàng chờ
+  - Khi READY_FOR_PICKUP: hiện vị trí kho + hạn nhận (holdExpirationTime 48h)
+  - Nút "Hủy đặt trước" (PENDING/READY_FOR_PICKUP) → Modal xác nhận → DELETE
+
+  Status badges:
+
+  ┌──────────────────┬─────────────────────────────────┐
+  │      Status      │              Nhãn               │
+  ├──────────────────┼─────────────────────────────────┤
+  │ PENDING          │ Đang chờ (+ số thứ tự hàng chờ) │
+  ├──────────────────┼─────────────────────────────────┤
+  │ READY_FOR_PICKUP │ Sẵn sàng nhận                   │
+  ├──────────────────┼─────────────────────────────────┤
+  │ COMPLETED        │ Đã nhận sách                    │
+  ├──────────────────┼─────────────────────────────────┤
+  │ CANCELLED        │ Đã hủy                          │
+  ├──────────────────┼─────────────────────────────────┤
+  │ EXPIRED          │ Hết hạn nhận                    │
+  └──────────────────┴─────────────────────────────────┘
