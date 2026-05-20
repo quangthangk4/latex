@@ -1,0 +1,1039 @@
+\chapter{Kiểm thử phần mềm}
+
+\section{Kiểm thử Frontend}
+
+Nhóm đã kiểm thử frontend ở mức unit, context, component và service contract
+bằng Jest, Testing Library và môi trường \texttt{jsdom}. Mục tiêu của phần kiểm
+thử này là bắt các lỗi dễ tái xuất hiện trong giao diện: ánh xạ lỗi nghiệp vụ từ
+backend sang thông báo người dùng, trạng thái đăng nhập, đa ngôn ngữ Việt--Anh,
+light/dark/system theme, upload panel, nội dung notification, Google Maps ở
+trang liên hệ, service layer gọi đúng endpoint, admin audit/policy contract và
+các helper xử lý trạng thái đặt trước.
+
+Khác với kiểm thử thủ công chỉ quan sát giao diện, các test này kiểm tra trực
+tiếp logic dùng chung trong \texttt{utils} và \texttt{contexts}. Đây là những
+vị trí có phạm vi ảnh hưởng rộng: nếu \texttt{LanguageContext} sai, nhiều trang
+bị sai ngôn ngữ; nếu \texttt{ThemeContext} sai, toàn bộ SPA bị lệch theme; nếu
+\texttt{getFriendlyErrorMessage} sai, cùng một lỗi backend có thể bị hiển thị
+thành thông báo không đúng nghiệp vụ. Ngoài ra, các test service contract giúp
+nhóm kiểm soát URL, query string và payload gửi về backend/AI service trước khi
+chạy tích hợp thật.
+
+\subsection{Môi trường và cấu hình kiểm thử}
+
+Frontend dùng \texttt{jest.config.cjs} để chạy các file
+\texttt{*.test.ts} và \texttt{*.test.tsx}. Môi trường \texttt{jsdom} được chọn
+vì các context cần thao tác với \texttt{localStorage}, \texttt{document.html},
+\texttt{matchMedia} và DOM giống trình duyệt. File \texttt{src/test/setup.ts}
+nạp \texttt{@testing-library/jest-dom} để assertion có thể viết gần với hành vi
+giao diện hơn, ví dụ \texttt{toHaveTextContent} và \texttt{toHaveClass}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{3.5cm}|X|}
+\hline
+\textbf{Thành phần} & \textbf{Cấu hình sử dụng} \\
+\hline
+Test runner & Jest, chạy bằng script \texttt{npm test -- --runInBand}. \\
+\hline
+Biên dịch test & \texttt{ts-jest} với JSX mode \texttt{react-jsx}. \\
+\hline
+Môi trường DOM & \texttt{jest-environment-jsdom}, hỗ trợ kiểm tra DOM, \texttt{localStorage} và \texttt{document}. \\
+\hline
+Assertion UI & \texttt{@testing-library/jest-dom}. \\
+\hline
+Mock style & \texttt{identity-obj-proxy} cho file CSS/SCSS. \\
+\hline
+Alias import & \texttt{@/(.*)} trỏ về thư mục gốc frontend. \\
+\hline
+\end{tabularx}
+\caption{Cấu hình kiểm thử Frontend}
+\label{tab:fe_test_env}
+\end{table}
+
+
+\subsection{Phạm vi test đã hiện thực}
+
+Nhóm ưu tiên các phần logic có khả năng ảnh hưởng nhiều màn hình thay vì chỉ
+kiểm từng nút bấm riêng lẻ. Bộ test cuối cùng bao phủ 11 suite, gồm logic dùng
+chung, context toàn cục, component nhỏ, trang liên hệ và service layer.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{|p{5.1cm}|X|p{1.5cm}|}
+\hline
+\textbf{File test} & \textbf{Nội dung kiểm thử} & \textbf{Số test} \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/utils/}\\\texttt{errorMessages.test.ts}\end{tabular} &
+Ánh xạ mã lỗi backend sang thông báo phù hợp cho duplicate email, duplicate review và text lỗi chung. & 4 \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/utils/}\\\texttt{notification}\\\texttt{Localization.test.ts}\end{tabular} &
+Localize notification theo ngôn ngữ, giữ dữ liệu động như tên sách, số tiền và vị trí hàng chờ. & 3 \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/utils/}\\\texttt{reservationUtils.test.ts}\end{tabular} &
+Nhãn/màu trạng thái đặt trước, format ngày, quyền hủy reservation và deadline nhận sách. & 18 \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/contexts/}\\\texttt{LanguageContext}\\\texttt{.test.tsx}\end{tabular} &
+Ngôn ngữ mặc định, fallback text, chuyển sang English, lưu \texttt{localStorage} và cập nhật \texttt{document.lang}. & 2 \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/contexts/}\\\texttt{ThemeContext}\\\texttt{.test.tsx}\end{tabular} &
+Theme mặc định \texttt{system}, dark/light mode, \texttt{prefers-color-scheme}, class \texttt{dark} trên thẻ \texttt{html}. & 3 \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/contexts/}\\\texttt{AuthContext.test.tsx}\end{tabular} &
+Load role đã lưu, login bằng mật khẩu/social, parse role từ JWT và logout xóa token. & 5 \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/contexts/}\\\texttt{UploadContext}\\\texttt{.test.tsx}\end{tabular} &
+Thêm/cập nhật/xóa upload, progress/status và cảnh báo \texttt{beforeunload} khi upload đang chạy. & 5 \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/components/}\\\texttt{UiComponents.test.tsx}\end{tabular} &
+Star rating, password visibility toggle và disabled button. & 3 \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/components/}\\\texttt{Switchers.test.tsx}\end{tabular} &
+Language switcher và theme mode toggle thao tác đúng context toàn cục. & 2 \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/pages/}\\\texttt{ContactPage.test.tsx}\end{tabular} &
+Thông tin liên hệ, iframe Google Maps lazy loading và submit form liên hệ. & 2 \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{src/api/}\\\texttt{frontendServices.test.ts}\end{tabular} &
+Hợp đồng endpoint/payload cho search, semantic search, PayOS, wishlist, S3 upload, rating, admin audit, circulation policy, system review và ghi chú giao dịch. & 10 \\
+\hline
+\textbf{Tổng cộng} & \textbf{11 test suites} & \textbf{58} \\
+\hline
+\end{tabularx}
+\caption{Các file test Frontend đã hiện thực}
+\label{tab:fe_test_files}
+\end{table}
+
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{figures/ch07/test-results/fe-jest-result.png}{
+        \includegraphics[width=0.9\textwidth]{figures/ch07/test-results/fe-jest-result.png}
+    }{
+        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: chạy \texttt{npm run test:report} trong \texttt{LMS\_fe} để tạo ảnh tại \texttt{figures/ch07/test-results/fe-jest-result.png}}}
+    }
+    \caption{Kết quả chạy unit/context test Frontend}
+    \label{fig:fe_unit_test_result}
+\end{figure}
+
+\subsection{Nhóm test ánh xạ lỗi nghiệp vụ}
+
+Một lỗi thực tế nhóm đã phát hiện là frontend từng ánh xạ lỗi trùng email sang
+thông báo trùng đánh giá. Nguyên nhân là cả hai lỗi đều có dạng conflict và có
+text gần giống \texttt{already exists}. Nhóm đã điều chỉnh helper
+\texttt{getFriendlyErrorMessage} theo nguyên tắc: ưu tiên \texttt{code} nghiệp
+vụ do backend trả về trước, sau đó mới fallback theo text.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{2.2cm}|X|X|p{2.2cm}|}
+\hline
+\textbf{Mã} & \textbf{Dữ liệu vào} & \textbf{Kết quả mong đợi} & \textbf{Mức ưu tiên} \\
+\hline
+FE-ERR-01 & Backend trả \texttt{code=1103}, message tiếng Anh cho email đã tồn tại. & Hiển thị \texttt{This email is already registered.} & Cao \\
+\hline
+FE-ERR-02 & Backend trả \texttt{code=1103}, message tiếng Việt cho email đã tồn tại. & Hiển thị \texttt{Email đã được sử dụng.} & Cao \\
+\hline
+FE-ERR-03 & Lỗi chỉ có text \texttt{Email already exists}. & Vẫn hiểu là lỗi đăng ký email, không nhầm sang review. & Cao \\
+\hline
+FE-ERR-04 & Backend trả \texttt{code=2700} cho rating đã tồn tại. & Hiển thị lỗi giao dịch mượn đã được đánh giá. & Cao \\
+\hline
+\end{tabularx}
+\caption{Test case cho ánh xạ lỗi nghiệp vụ}
+\label{tab:fe_error_message_tests}
+\end{table}
+
+Đoạn test sau được giữ lại vì đây là lỗi regression dễ gặp: cùng là lỗi
+\texttt{409 Conflict}, nhưng trùng email khi đăng ký và trùng đánh giá sách phải
+được hiển thị bằng hai thông báo khác nhau.
+
+\begin{lstlisting}[caption={Regression test cho duplicate email và duplicate review}, label={lst:fe_error_message_test}]
+expect(getFriendlyErrorMessage({
+  status: 409,
+  data: { code: 1103, message: 'Email already exists' },
+}, 'en')).toBe('This email is already registered.');
+
+expect(getFriendlyErrorMessage({
+  status: 409,
+  data: { code: 2700 },
+}, 'en')).toBe(
+  'This loan transaction has already been reviewed.'
+);
+\end{lstlisting}
+
+Giá trị của nhóm test này là bảo vệ trải nghiệm đăng ký và đánh giá sách. Khi
+backend thay đổi message nhưng vẫn giữ \texttt{ErrorCode}, frontend vẫn hiển thị
+đúng thông báo. Điều này cũng giúp báo cáo lỗi rõ hơn: lỗi đăng ký email, lỗi
+tài khoản tồn tại và lỗi đánh giá trùng không còn bị gom chung thành một thông
+báo mơ hồ.
+
+\subsection{Nhóm test đa ngôn ngữ và notification}
+
+Frontend có hai nguồn nội dung cần localize: text tĩnh trong giao diện và
+notification phát sinh từ backend. Với text tĩnh, nhóm kiểm thử
+\texttt{LanguageContext}; với notification, nhóm kiểm thử helper localize
+notification. Cách tách này giúp bảo đảm thông báo thời gian
+thực vẫn hiển thị đúng khi người dùng đổi ngôn ngữ sau khi notification đã được
+lưu trong database.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{2.4cm}|X|X|}
+\hline
+\textbf{Mã} & \textbf{Kịch bản} & \textbf{Kết quả mong đợi} \\
+\hline
+FE-LANG-01 & Mở provider khi chưa có cấu hình trong \texttt{localStorage}. & Ngôn ngữ mặc định là \texttt{vi}, tiêu đề cài đặt hiển thị \texttt{Cài đặt}. \\
+\hline
+FE-LANG-02 & Gọi \texttt{t()} với key không tồn tại nhưng có fallback. & Hiển thị fallback text thay vì key thô. \\
+\hline
+FE-LANG-03 & Chuyển từ tiếng Việt sang English. & UI đổi sang English, lưu \texttt{smartlibrary.language=en}, cập nhật \texttt{document.lang}. \\
+\hline
+FE-NOTI-01 & Notification đặt trước sách ở tiếng Việt. & Giữ nguyên title/message tiếng Việt. \\
+\hline
+FE-NOTI-02 & Notification đặt trước sách ở English. & Dịch title/message, giữ đúng vị trí hàng chờ. \\
+\hline
+FE-NOTI-03 & Notification thanh toán phí phạt ở English. & Dịch câu thông báo nhưng giữ tên sách và số tiền. \\
+\hline
+\end{tabularx}
+\caption{Test case cho đa ngôn ngữ}
+\label{tab:fe_language_tests}
+\end{table}
+
+
+\subsection{Nhóm test theme light/dark/system}
+
+Theme là state toàn cục nên nhóm kiểm thử ở cấp \texttt{ThemeContext}. Test
+không chỉ kiểm giá trị state, mà còn kiểm side effect trên thẻ
+\texttt{document.documentElement}. Đây là vị trí Tailwind đọc class
+\texttt{dark}; nếu class này không được thêm hoặc xóa đúng, nhiều trang sẽ hiển
+thị sai màu dù state React vẫn đúng.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{2.4cm}|X|X|}
+\hline
+\textbf{Mã} & \textbf{Kịch bản} & \textbf{Kết quả mong đợi} \\
+\hline
+FE-THEME-01 & Chưa chọn theme, hệ điều hành đang light mode. & \texttt{themeMode=system}, \texttt{resolvedTheme=light}, thẻ \texttt{html} không có class \texttt{dark}. \\
+\hline
+FE-THEME-02 & Người dùng chọn dark mode. & \texttt{themeMode=dark}, \texttt{resolvedTheme=dark}, thêm class \texttt{dark}, lưu \texttt{smartlibrary.theme=dark}. \\
+\hline
+FE-THEME-03 & Chọn system mode khi \texttt{prefers-color-scheme} là dark. & \texttt{resolvedTheme=dark}, thẻ \texttt{html} có class \texttt{dark}. \\
+\hline
+\end{tabularx}
+\caption{Test case cho ThemeContext}
+\label{tab:fe_theme_tests}
+\end{table}
+
+
+\subsection{Nhóm test helper đặt trước}
+
+Trong trang đặt trước, frontend cần hiển thị đúng trạng thái hàng chờ và quyết
+định phiếu nào còn được hủy. Nhóm đã kiểm thử các helper trong
+\texttt{reservationUtils}: cấu hình nhãn/màu, format ngày, điều kiện hủy và
+deadline nhận sách. Đây là nhóm test có số lượng lớn nhất vì trạng thái đặt
+trước có nhiều nhánh nhỏ nhưng ảnh hưởng trực tiếp đến thao tác của độc giả.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{|p{4.4cm}|X|}
+\hline
+\textbf{Hàm/nhóm dữ liệu} & \textbf{Nhánh đã kiểm thử} \\
+\hline
+\texttt{STATUS\_CONFIG} & \texttt{PENDING}, \texttt{READY\_FOR\_PICKUP}, \texttt{CANCELLED}, \texttt{COMPLETED}, \texttt{EXPIRED}; kiểm nhãn và màu tương ứng. \\
+\hline
+\texttt{fmtDate} & Input \texttt{null}, chuỗi ngày không hợp lệ, ISO string hợp lệ và năm hiển thị trong kết quả. \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{isActive}\\\texttt{Cancellable}\end{tabular} & Cho phép hủy \texttt{PENDING}, \texttt{READY\_FOR\_PICKUP}; không cho hủy \texttt{COMPLETED}, \texttt{CANCELLED}, \texttt{EXPIRED}. \\
+\hline
+\begin{tabular}[c]{@{}l@{}}\texttt{calcHold}\\\texttt{DeadlineLabel}\end{tabular} & Không có hạn nhận, đã hết hạn, còn dưới 24 giờ và còn trên 24 giờ. \\
+\hline
+\end{tabularx}
+\caption{Các nhánh kiểm thử reservation utility}
+\label{tab:fe_reservation_tests}
+\end{table}
+
+
+\subsection{Nhóm test xác thực và phiên đăng nhập}
+
+Bộ kiểm thử bao phủ \texttt{AuthContext} vì đây là nơi quyết định toàn
+bộ trạng thái phiên đăng nhập của SPA. Test không gọi backend thật mà mock
+\texttt{authService}; nhờ vậy có thể kiểm tra rõ các nhánh: load role từ
+\texttt{localStorage}, login demo, login bằng mật khẩu, social login và logout.
+Với login thật, test tạo JWT giả có payload \texttt{scope} để xác minh frontend
+parse đúng vai trò \texttt{student}/\texttt{librarian}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{2.4cm}|X|X|}
+\hline
+\textbf{Mã} & \textbf{Kịch bản} & \textbf{Kết quả mong đợi} \\
+\hline
+FE-AUTH-01 & \texttt{localStorage} đã có \texttt{userType=librarian}. & Provider khởi tạo với role thủ thư. \\
+\hline
+FE-AUTH-02 & Login demo bằng chuỗi \texttt{student}. & Cập nhật state và lưu \texttt{userType=student}. \\
+\hline
+FE-AUTH-03 & Login bằng mật khẩu nhận JWT có scope \texttt{LIBRARIAN}. & Lưu access/refresh token và xác định role \texttt{librarian}. \\
+\hline
+FE-AUTH-04 & Social login trả \texttt{isNewUser=true}. & Gọi đúng callback service, lưu token và role. \\
+\hline
+FE-AUTH-05 & Logout khi có refresh token. & Gọi API logout, xóa token và đưa \texttt{userType} về \texttt{null}. \\
+\hline
+\end{tabularx}
+\caption{Test case cho AuthContext}
+\label{tab:fe_auth_context_tests}
+\end{table}
+
+
+\subsection{Nhóm test upload và component dùng chung}
+
+Với upload tài liệu PDF, frontend cần giữ progress ở cấp ứng dụng và cảnh báo
+người dùng khi đóng tab trong lúc upload còn chạy. Nhóm đã kiểm thử
+\texttt{UploadContext} cho các thao tác thêm, cập nhật progress, đổi trạng thái,
+xóa upload và đăng ký \texttt{beforeunload}. Bên cạnh đó, nhóm bổ sung test cho
+các component dùng chung như \texttt{StarRating}, \texttt{Input} dạng password,
+\texttt{Button}, \texttt{LanguageSwitcher} và \texttt{ThemeModeToggle}.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{|p{2.3cm}|p{4.1cm}|X|}
+\hline
+\textbf{Mã} & \textbf{Kịch bản} & \textbf{Kết quả mong đợi} \\
+\hline
+FE-UP-01 & Thêm upload mới. & Item có \texttt{status=uploading}, \texttt{progress=0}. \\
+\hline
+FE-UP-02 & Cập nhật progress và chuyển sang \texttt{done}. & State upload phản ánh đúng tiến độ và trạng thái cuối. \\
+\hline
+FE-UP-03 & Upload đang chạy. & Đăng ký listener \texttt{beforeunload}. \\
+\hline
+FE-UI-01 & \texttt{StarRating} nhận \texttt{rating=3.6}. & Làm tròn và tô 4 sao, hiển thị review count. \\
+\hline
+FE-UI-02 & Input password bấm nút hiển thị. & Type đổi từ \texttt{password} sang \texttt{text}. \\
+\hline
+FE-UI-03 & Switch language/theme từ component. & Context và \texttt{localStorage} được cập nhật đúng. \\
+\hline
+\end{tabularx}
+\caption{Test case cho upload và component dùng chung}
+\label{tab:fe_component_tests}
+\end{table}
+
+\subsection{Nhóm test trang liên hệ}
+
+Trang liên hệ là trang public nhưng có nhiều điểm tích hợp nhỏ: thông tin gọi
+nhanh, email, form liên hệ và Google Maps nhúng bằng \texttt{iframe}. Nhóm đã
+kiểm thử trang này để bảo đảm các link liên hệ không bị sai, bản đồ được lazy
+load và submit form hiển thị trạng thái thành công.
+
+
+\subsection{Nhóm test service contract}
+
+Các service trong thư mục \texttt{api} là lớp hợp đồng giữa frontend và backend.
+Nếu service tạo sai query string hoặc gọi sai endpoint, UI có thể vẫn render
+được nhưng request gửi đi sai. Nhóm đã mock \texttt{axiosInstance} để kiểm tra
+URL/payload của các service có giá trị cao: tìm kiếm public, semantic search,
+PayOS, wishlist, upload PDF qua presigned URL, rating, admin audit, policy cấu
+hình từ DB, system review công khai và thread ghi chú giao dịch.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{2.5cm}|X|X|}
+\hline
+\textbf{Mã} & \textbf{Service} & \textbf{Điểm kiểm tra} \\
+\hline
+FE-SVC-01 & \begin{tabular}[c]{@{}l@{}}\texttt{publicationsService.}\\\texttt{searchPublications}\end{tabular} & Tạo query string gồm keyword, categoryIds, language, year, branch, available, sort và pagination. \\
+\hline
+FE-SVC-02 & \begin{tabular}[c]{@{}l@{}}\texttt{semanticSearchService.}\\\texttt{search}\end{tabular} và \begin{tabular}[c]{@{}l@{}}\texttt{publicationsService.}\\\texttt{semanticSearch}\end{tabular} & Gửi \texttt{queryText} và \texttt{limit} đến \texttt{/ai/semantic-search}; wrapper trong \texttt{publicationsService} là hàm được trang Search dùng khi ghép lexical--semantic. \\
+\hline
+FE-SVC-03 & \texttt{fineService} & Tạo payment PayOS và sync đúng \texttt{orderCode}. \\
+\hline
+FE-SVC-04 & \texttt{wishlistService} & Add/remove/clear/status gọi đúng endpoint wishlist. \\
+\hline
+FE-SVC-05 & \begin{tabular}[c]{@{}l@{}}\texttt{uploadDocument}\\\texttt{ToS3}\end{tabular} & Dùng axios thuần với \texttt{Content-Type: application/pdf}, không đi qua interceptor. \\
+\hline
+FE-SVC-06 & Rating service & Gọi đúng endpoint list/create/helpful rating và filter sao/sắp xếp. \\
+\hline
+FE-SVC-07 & \texttt{adminService} & Gọi đúng endpoint nhật ký audit, khóa tài khoản và xác minh hồ sơ người dùng/thủ thư. \\
+\hline
+FE-SVC-08 & \texttt{circulationPolicyService} & Trang độc giả/thủ thư đọc quy định mượn trả từ \texttt{/circulation-policies}; admin cập nhật qua endpoint admin riêng. \\
+\hline
+FE-SVC-09 & \texttt{systemReviewsService} & Trang công khai lấy đánh giá nổi bật, thống kê tổng quan và lưu đánh giá cá nhân đúng endpoint. \\
+\hline
+FE-SVC-10 & \texttt{transactionsService} & Ghi chú giao dịch dùng endpoint thread để nhiều thủ thư cùng trao đổi và vẫn tách được người ghi chú. \\
+\hline
+\end{tabularx}
+\caption{Test case cho service layer}
+\label{tab:fe_service_contract_tests}
+\end{table}
+
+
+\subsection{Kết quả thực thi}
+
+Nhóm đã chạy lại bộ test frontend và đồng thời sinh ảnh kết quả bằng script
+\texttt{test:report}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Chỉ số} & \textbf{Kết quả} \\
+\hline
+Test suites & \textbf{11 passed / 11 total}. \\
+\hline
+Test cases & \textbf{58 passed / 58 total}. \\
+\hline
+Snapshot & \textbf{0 total}. \\
+\hline
+Thời gian chạy & Khoảng \textbf{1.424s} trên môi trường local. \\
+\hline
+Kết luận & Bộ test frontend pass toàn bộ ở tầng unit/context. \\
+\hline
+\end{tabularx}
+\caption{Kết quả kiểm thử Frontend}
+\label{tab:fe_test_result}
+\end{table}
+
+\subsection{Đánh giá và giới hạn}
+
+Phần kiểm thử frontend đã bao phủ các logic dùng chung và các hợp đồng
+giao tiếp có giá trị cao: localize lỗi backend, notification đa ngôn ngữ, theme
+toàn cục, language toàn cục, xác thực, upload, contact map, helper đặt trước và
+service layer cho search/AI/PayOS/wishlist/rating. Các test này giúp nhóm tự
+tin hơn khi sửa UI hoặc đổi message từ backend, vì những lỗi sai ngôn ngữ, sai
+role, sai endpoint hoặc sai payload sẽ được phát hiện trước khi demo.
+
+Tuy nhiên, nhóm vẫn phân biệt rõ giữa test frontend trong môi trường
+\texttt{jsdom} và kiểm thử E2E trên trình duyệt thật. Bộ test này đủ cho
+tầng unit/context/component/service contract, nhưng các luồng end-to-end như
+đăng nhập thật, tìm kiếm sách, đặt trước, nhận sách, thanh toán PayOS và nhận
+WebSocket notification vẫn nên được kiểm thử bằng Playwright hoặc kịch bản demo
+tích hợp sau khi backend/AI service cùng chạy.
+
+\section{Kiểm thử Backend}
+
+Backend được kiểm thử bằng JUnit 5, Mockito, MockMvc, Spring Boot Test và
+Testcontainers. Nhóm tách kiểm thử backend thành hai tầng: tầng unit/controller
+chạy nhanh với mock để kiểm tra nhánh nghiệp vụ và hợp đồng API; tầng
+integration chạy với PostgreSQL thật trong Docker để xác minh migration, dữ
+liệu seed và các truy vấn native SQL quan trọng.
+
+\subsection{Môi trường và cấu hình kiểm thử Backend}
+
+Các module backend dùng Maven Surefire để chạy test. Với test tích hợp trong
+\texttt{library-bootstrap}, nhóm dùng Testcontainers để khởi động
+\texttt{postgres:15-alpine}, sau đó để Flyway chạy toàn bộ migration từ
+\texttt{V1} đến \texttt{V22}. Cách này giúp kiểm thử trên schema thật của hệ
+thống thay vì dùng database giả hoặc H2 không tương thích hoàn toàn với
+PostgreSQL.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Thành phần} & \textbf{Cấu hình sử dụng} \\
+\hline
+Test runner & JUnit 5, Maven Surefire, chạy bằng \texttt{mvn test}. \\
+\hline
+Mock unit test & Mockito và AssertJ cho use case/service. \\
+\hline
+Controller test & MockMvc standalone, kiểm request binding, validation và response JSON. \\
+\hline
+Integration test & Spring Boot Test với Testcontainers \texttt{1.21.4}. \\
+\hline
+Database test & Docker Engine \texttt{29.4.3}, container \texttt{postgres:15-alpine}. \\
+\hline
+Migration & Flyway chạy 29 migration trên database test, gồm migration dọn schema/index, metadata AI, admin/policy/audit và transaction notes cuối cùng. \\
+\hline
+Test profile & \texttt{application-test.yml}, tắt Kafka listener và scheduler để test không phụ thuộc dịch vụ ngoài. \\
+\hline
+\end{tabularx}
+\caption{Cấu hình kiểm thử Backend}
+\label{tab:be_test_env}
+\end{table}
+
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{figures/ch07/test-results/be-test-result.png}{
+        \includegraphics[width=0.9\textwidth]{figures/ch07/test-results/be-test-result.png}
+    }{
+        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: kết quả backend tại \texttt{figures/ch07/test-results/be-test-result.png}}}
+    }
+    \caption{Kết quả chạy bộ test Backend}
+    \label{fig:be_test_result}
+\end{figure}
+
+\subsection{Phạm vi test Backend đã hiện thực}
+
+Bộ test backend có 23 test class với 79 test case. Phạm vi được chọn
+theo các luồng cốt lõi nhóm đã xây dựng: đăng ký/xác thực, notification, catalog
+tài liệu, mượn--trả sách, đặt trước, rating/wishlist, AI gateway và callback từ
+AI service. Với admin console và quy định mượn trả cấu hình từ DB, các test
+circulation sử dụng mock \texttt{CirculationPolicyService}, bảo đảm unit test
+phản ánh đúng cách runtime đọc policy thay vì giả định hằng số cứng.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{4.2cm}|p{2.2cm}|p{2cm}|X|}
+\hline
+\textbf{Module} & \textbf{Số class} & \textbf{Số test} & \textbf{Nội dung chính} \\
+\hline
+\texttt{library-auth-module} & 1 & 3 & Controller đăng ký, payload hợp lệ và validation email/student id. \\
+\hline
+\texttt{library-user-module} & 3 & 10 & Signup use case, notification page, unread count, mark read và mark all read. \\
+\hline
+\texttt{library-catalog-module} & 5 & 12 & Tạo publication/item, document upload URL, save document URL, public search SQL contract và publication controller. \\
+\hline
+\texttt{library-circulation-module} & 5 & 24 & Borrow request, return book, overdue fine, unpaid fine, borrow/reservation limit lấy từ \texttt{CirculationPolicyService}, reservation use case, transaction controller và fine/PayOS controller. \\
+\hline
+\texttt{library-recommendation-module} & 7 & 24 & Wishlist, rating, AI gateway fallback, semantic/recommendation contract và signed AI callback. \\
+\hline
+\texttt{library-bootstrap} & 2 & 6 & Integration với PostgreSQL thật: borrow/return flow và reservation native SQL. \\
+\hline
+\textbf{Tổng cộng} & \textbf{23} & \textbf{79} & \textbf{Toàn bộ pass}. \\
+\hline
+\end{tabularx}
+\caption{Tổng hợp test Backend theo module}
+\label{tab:be_test_modules}
+\end{table}
+
+\subsection{Nhóm test Catalog}
+
+Catalog là phần backend ảnh hưởng trực tiếp đến tìm kiếm sách, quản lý ấn phẩm,
+upload tài liệu PDF và dữ liệu hiển thị ở frontend. Bộ test có các
+hợp đồng có rủi ro cao: ISBN phải được normalize trước khi lưu, bảng liên kết
+author/category/tag phải được insert đúng, item mới phải có trạng thái
+\texttt{AVAILABLE}, barcode không được trùng, upload URL phải tạo đúng S3 key
+và public search phải sinh đúng SQL filter.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{|p{2.5cm}|p{4.5cm}|X|}
+\hline
+\textbf{Mã} & \textbf{Kịch bản} & \textbf{Kết quả mong đợi} \\
+\hline
+BE-CAT-01 & Tạo publication có ISBN, TOC, author, category và tag. & Lưu publication, normalize ISBN và insert đúng các bảng liên kết. \\
+\hline
+BE-CAT-02 & Tạo item cho publication tồn tại và barcode duy nhất. & Item được lưu với trạng thái \texttt{AVAILABLE}. \\
+\hline
+BE-CAT-03 & Tạo item với publication không tồn tại. & Ném \texttt{PUBLICATION\_NOT\_FOUND}, không lưu item. \\
+\hline
+BE-CAT-04 & Tạo item với barcode đã tồn tại. & Từ chối trước khi gọi save. \\
+\hline
+BE-CAT-05 & Xin presigned URL upload document với filename có khoảng trắng. & S3 key được sanitize và URL có TTL 15 phút. \\
+\hline
+BE-CAT-06 & Lưu S3 key sau khi upload PDF. & Lưu public URL, đánh dấu AI ETL \texttt{QUEUED} và gọi AI processing. \\
+\hline
+BE-CAT-07 & Public search có keyword, category, language, year, branch, available và sort rating. & SQL chứa đúng filter, normalize ngôn ngữ, giới hạn page size tối đa 50, đồng thời match tag/category gốc và alias trong \texttt{tag\_translations}/\texttt{category\_translations}. \\
+\hline
+BE-CAT-08 & Mock result set của public search. & Map đúng các cột SQL sang \texttt{PublicSearchResult}. \\
+\hline
+\end{tabularx}
+\caption{Test case Backend cho Catalog}
+\label{tab:be_catalog_tests}
+\end{table}
+
+Trong quá trình viết test, nhóm phát hiện một lỗi contract ở endpoint lưu URL
+tài liệu: controller trả URL vào trường \texttt{message} thay vì \texttt{data}.
+Lỗi này đã được sửa để frontend có thể đọc URL đã lưu một cách nhất quán.
+Riêng public search, test SQL contract cũng khóa hành vi tìm kiếm Anh--Việt hai
+chiều: keyword được so khớp trên tên tag/category tiếng Việt trong bảng gốc và
+alias tiếng Anh trong bảng translation, sau đó thứ tự liên quan vẫn ưu tiên
+nhan đề/phụ đề trước exact tag và partial tag.
+
+\subsection{Nhóm test Circulation và Reservation}
+
+Các use case mượn--trả và đặt trước có nhiều điều kiện nghiệp vụ nên được kiểm
+ở cả unit test, controller contract test và integration test. Unit test kiểm các
+nhánh ràng buộc bằng mock: item không sẵn sàng, độc giả còn nợ phí, vượt giới
+hạn mượn, đã đặt trước sách, hoặc sách đang có bản \texttt{AVAILABLE}. Controller
+test kiểm endpoint mà frontend/thủ thư gọi trực tiếp như tạo phiếu mượn, tra cứu
+giao dịch, trả sách, báo cáo sự cố, danh sách phí phạt, thanh toán tiền mặt và
+PayOS. Integration test chạy trên PostgreSQL thật để kiểm các câu SQL có
+\texttt{FOR UPDATE}, queue position và trạng thái item/transaction sau khi mượn
+hoặc trả.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{|p{2.6cm}|p{4.7cm}|X|}
+\hline
+\textbf{Mã} & \textbf{Kịch bản} & \textbf{Kết quả mong đợi} \\
+\hline
+BE-BOR-01 & Mượn item \texttt{AVAILABLE}. & Tạo transaction \texttt{WAITING\_FOR\_PICKUP}, item chuyển \texttt{RESERVED}, hạn nhận và hạn trả lấy từ policy hiện hành. \\
+\hline
+BE-BOR-02 & Mượn item không ở trạng thái \texttt{AVAILABLE}. & Ném \texttt{ITEM\_NOT\_BORROWABLE}. \\
+\hline
+BE-BOR-03 & User còn fine \texttt{UNPAID}. & Ném \texttt{USER\_HAS\_UNPAID\_FINES} khi policy bật chặn mượn với phí chưa trả. \\
+\hline
+BE-BOR-04 & User đã đạt giới hạn mượn cấu hình bởi admin. & Ném \texttt{USER\_BORROW\_LIMIT\_EXCEEDED}. \\
+\hline
+BE-RET-01 & Trả sách đúng hạn. & Transaction \texttt{RETURNED}, item về \texttt{AVAILABLE}. \\
+\hline
+BE-RET-02 & Trả sách quá hạn. & Tạo fine quá hạn theo mức phí/ngày trong policy và cập nhật trạng thái trả. \\
+\hline
+BE-TRX-01 & Controller tạo phiếu mượn với \texttt{itemId} hợp lệ. & HTTP 200, lấy đúng user hiện tại và gọi use case tạo transaction. \\
+\hline
+BE-TRX-02 & Controller trả sách và báo cáo sự cố. & Bind đúng librarian hiện tại, transaction id, ghi chú, mức phạt và danh sách phí tạo ra. \\
+\hline
+BE-FINE-01 & Lấy fine của sinh viên, đánh dấu đã thanh toán và thanh toán tiền mặt. & Gọi đúng use case, trả response schema thống nhất cho frontend. \\
+\hline
+BE-FINE-02 & Tạo/sync PayOS payment và nhận webhook sai chữ ký. & Tạo đúng payment URL, sync đúng \texttt{orderCode}; webhook không hợp lệ bị từ chối HTTP 401. \\
+\hline
+BE-RES-01 & Đặt trước khi không có item available. & Tạo reservation \texttt{PENDING}, kiểm giới hạn đặt trước từ policy và tính đúng queue position bằng native SQL. \\
+\hline
+BE-RES-02 & Đặt trước khi sách đang có item available. & Ném \texttt{RESERVATION\_BOOK\_AVAILABLE}. \\
+\hline
+BE-RES-03 & Đặt trước ở branch không có item. & Ném \texttt{RESERVATION\_BRANCH\_NO\_ITEMS}. \\
+\hline
+\end{tabularx}
+\caption{Test case Backend cho mượn--trả và đặt trước}
+\label{tab:be_circulation_tests}
+\end{table}
+
+\subsection{Nhóm test Auth, User, Recommendation và AI}
+
+Các module còn lại được kiểm theo hướng hợp đồng nghiệp vụ và API. Auth
+controller bảo đảm chỉ payload đăng ký hợp lệ được chuyển xuống use case. User
+module kiểm signup và notification state. Recommendation module kiểm wishlist,
+rating, duplicate rating, AI gateway khi thành công hoặc lỗi, semantic search
+contract và HMAC callback từ AI service.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{|p{2.6cm}|p{4.4cm}|X|}
+\hline
+\textbf{Mã} & \textbf{Kịch bản} & \textbf{Kết quả mong đợi} \\
+\hline
+BE-AUTH-01 & POST register với payload hợp lệ. & HTTP 200 và gọi \texttt{SignUpUseCase}. \\
+\hline
+BE-AUTH-02 & Register email không phải \texttt{@hcmut.edu.vn}. & HTTP 400 trước khi gọi use case. \\
+\hline
+BE-AUTH-03 & Register student id sai định dạng. & HTTP 400 trước khi gọi use case. \\
+\hline
+BE-NOTI-01 & Lấy notification của user hiện tại. & Trả page response đúng dữ liệu. \\
+\hline
+BE-NOTI-02 & Mark read/mark all read. & Gọi use case với đúng user id hiện tại. \\
+\hline
+BE-RATE-01 & Tạo rating và list/summary rating. & Controller bind đúng publication id, user id, filter và response schema. \\
+\hline
+BE-RATE-02 & Star rating ngoài khoảng 1--5. & HTTP 400 trước khi gọi use case. \\
+\hline
+BE-AI-01 & AI gateway trả response snake case. & Map đúng publication ids, strategy và metadata. \\
+\hline
+BE-AI-02 & AI gateway lỗi 500. & Backend fallback, không làm sập request chính. \\
+\hline
+BE-AI-03 & AI callback có chữ ký HMAC hợp lệ/không hợp lệ. & Chấp nhận callback hợp lệ, từ chối callback thiếu hoặc sai chữ ký. \\
+\hline
+\end{tabularx}
+\caption{Test case Backend cho Auth/User/Recommendation/AI}
+\label{tab:be_other_tests}
+\end{table}
+
+\subsection{Kết quả thực thi Backend}
+
+Bộ test backend cuối cùng chạy thành công toàn bộ. Kết quả chi tiết được lưu tại
+thư mục \texttt{figures/test-results}, gồm file tóm tắt
+\texttt{be-test-result.txt} và log Maven đầy đủ
+\texttt{be-full-test-result.txt}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Chỉ số} & \textbf{Kết quả} \\
+\hline
+Test classes & \textbf{23}. \\
+\hline
+Test cases & \textbf{79 passed / 79 total}. \\
+\hline
+Failures & \textbf{0}. \\
+\hline
+Errors & \textbf{0}. \\
+\hline
+Skipped & \textbf{0}. \\
+\hline
+Thời gian Surefire & Khoảng \textbf{13.023s}. \\
+\hline
+Kết luận & Bộ test backend pass toàn bộ ở tầng unit/controller và integration PostgreSQL. \\
+\hline
+\end{tabularx}
+\caption{Kết quả kiểm thử Backend}
+\label{tab:be_test_result}
+\end{table}
+
+\subsection{Đánh giá và giới hạn}
+
+Bộ test backend đã bao phủ các thành quả chính của hệ thống: quản lý
+ấn phẩm, upload tài liệu, tìm kiếm public, đăng ký người dùng, notification,
+mượn--trả sách, đặt trước, phí phạt/thanh toán, rating, wishlist và tích hợp AI. Đặc biệt, nhóm đã
+kiểm thử integration với PostgreSQL thật bằng Testcontainers để chứng minh các
+native SQL và migration hoạt động trên môi trường gần với triển khai thực tế.
+
+Giới hạn còn lại là bộ test chưa thay thế hoàn toàn kiểm thử E2E nhiều dịch vụ
+cùng lúc với frontend, backend, AI service, Kafka và PayOS sandbox đều đang
+chạy. Tuy nhiên, ở phạm vi backend độc lập, bộ test đủ để chứng minh
+các use case cốt lõi, controller contract và truy vấn database quan trọng hoạt
+động đúng.
+
+\section{Kiểm thử AI Service}
+
+AI service là phần chịu trách nhiệm xử lý tài liệu PDF, tạo vector embedding,
+sinh metadata học thuật, tìm kiếm ngữ nghĩa và gợi ý sách. Vì vậy nhóm không chỉ
+kiểm thử API trả đúng schema, mà còn kiểm thử các ràng buộc chất lượng ở bên
+trong pipeline: làm sạch PDF, chia chunk ổn định, reduce không dùng metadata
+catalog để viết summary, tag tiếng Việt đúng 5 nhãn, alias tiếng Anh khớp
+1--1, SQL ghi vào đúng schema \texttt{public}/\texttt{ai\_engine}, hybrid search
+ưu tiên lexical trước semantic với truy vấn ngắn, recommender có fallback và
+worker callback có chữ ký HMAC.
+
+Riêng đối với phân hệ schema AI, kiểm thử giao ước dữ liệu (test contract) tập trung xác nhận pipeline thực hiện ghi nhận chính xác vào các đích lưu trữ sau:
+\begin{itemize}
+    \item \textbf{Dữ liệu Vector:} Ghi cấu trúc vector vào bảng \texttt{ai\_engine.publication\_vectors}.
+    \item \textbf{Phân loại dữ liệu (Tags):} Định tuyến dữ liệu tag vào phân hệ chung thông qua \texttt{public.tags} và \texttt{public.publication\_tags}.
+    \item \textbf{Bản địa hóa ngôn ngữ:} Lưu trữ cấu hình alias tại \texttt{public.tag\_translations}.
+\end{itemize}
+Đồng thời, phạm vi kiểm thử đảm bảo hệ thống hoàn toàn cô lập, không phát sinh phụ thuộc vào các bảng nằm ngoài cấu trúc schema đích bao gồm: \texttt{ai\_engine.tags}, \texttt{ai\_engine.publication\_tags} và \texttt{ai\_engine.recommendation\_cache}.
+
+\subsection{Môi trường kiểm thử AI}
+
+Bộ test AI được viết bằng \texttt{pytest}. Các test chính chạy offline, không gọi
+Gemini thật, không cần PostgreSQL, RabbitMQ hoặc backend đang chạy. Những test
+tích hợp live cho API vẫn được giữ trong thư mục \texttt{tests/integration} và
+chỉ chạy khi bật biến môi trường \texttt{RUN\_LIVE\_AI\_CONTRACT\_TESTS=1}.
+Cách tách này giúp nhóm có một bộ regression nhanh để chạy thường xuyên, đồng
+thời vẫn có đường kiểm thử end-to-end khi cần đo latency với service thật.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Thành phần} & \textbf{Cấu hình sử dụng} \\
+\hline
+Test runner & \texttt{pytest 8.3.5}, chạy bằng \texttt{PYTHONPATH=. ./venv/bin/python -m pytest -q}. \\
+\hline
+Mock LLM & Stub \texttt{GeminiClient.\_call} để trả JSON cố định, không gọi API ngoài. \\
+\hline
+Mock database & Fake connection/cursor để bắt SQL và tham số, không cần PostgreSQL thật. \\
+\hline
+Mock gateway & Monkeypatch các hàm search/recommendation để kiểm thứ tự merge, limit và fallback. \\
+\hline
+Mock worker & Mock Celery signal/app và HTTP request để kiểm payload, download và HMAC callback. \\
+\hline
+Live integration & 3 test contract/latency được skip mặc định, chỉ bật khi có AI API thật qua \texttt{AI\_API\_BASE\_URL}. \\
+\hline
+\end{tabularx}
+\caption{Cấu hình kiểm thử AI Service}
+\label{tab:ai_test_env}
+\end{table}
+
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{figures/ch07/test-results/ai-pytest-result.png}{
+        \includegraphics[width=0.9\textwidth]{figures/ch07/test-results/ai-pytest-result.png}
+    }{
+        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: kết quả AI pytest tại \texttt{figures/ch07/test-results/ai-pytest-result.png}}}
+    }
+    \caption{Kết quả chạy bộ test AI Service}
+    \label{fig:ai_pytest_result}
+\end{figure}
+
+\subsection{Phạm vi test AI đã hiện thực}
+
+Bộ test AI có 9 file test với 47 test case được collect. Trong đó 44
+test offline pass và 3 test live integration được skip mặc định. Các test được
+chia theo module thay vì chỉ theo endpoint, vì lỗi trong AI thường xuất hiện ở
+giữa pipeline: PDF nhiễu làm chunk sai, LLM trả JSON lệch, tag bị generic, SQL
+ghi sai schema hoặc hybrid search merge sai thứ tự.
+
+\begin{table}[H]
+\centering
+\small % Nâng cỡ chữ lên để đọc rõ ràng, tương thích chuẩn báo cáo
+\renewcommand{\arraystretch}{1.5} % Tạo không gian thở rộng rãi cho từng dòng
+\begin{tabularx}{\textwidth}{|p{5.6cm}|>{\raggedright\arraybackslash}X|p{1.8cm}|}
+\hline
+\textbf{File test} & \textbf{Nội dung kiểm thử} & \textbf{Số test} \\
+\hline
+\texttt{tests/test\_ai\_metadata\_} \newline \texttt{quality.py} & Fallback tag, summary chỉ dựa trên PDF content, lọc tag generic/title/category và alias tiếng Anh. & 5 \\
+\hline
+\texttt{tests/test\_pdf\_processing.py} & Làm sạch header/footer/số trang, bỏ ký tự null, ghép từ bị xuống dòng, chunk id ổn định và validate \texttt{chunk\_overlap}. & 4 \\
+\hline
+\texttt{tests/test\_llm\_client.py} & Parse JSON từ Gemini, lỗi response rỗng, reduce metadata, lọc tag xấu, giữ alias \texttt{tags\_en} đúng cặp và reject summary kiểu catalog. & 6 \\
+\hline
+\texttt{tests/test\_pipeline\_core.py} & Chọn representative chunks, áp budget reduce, fallback khi LLM lỗi, optional English metadata translation và hash file/URL. & 7 \\
+\hline
+\texttt{tests/test\_database\_sql\_} \newline \texttt{contract.py} & SQL contract cho vector, publication tags, \texttt{public.tags}, \texttt{public.tag\_translations} và điều kiện đủ AI output. & 5 \\
+\hline
+\texttt{tests/test\_api\_service\_} \newline \texttt{contract.py} & pgvector literal, tokenize tiếng Việt không dấu, merge hybrid search, giới hạn \texttt{limit}, lexical-first cho query ngắn và fallback recommendation khi ALS lỗi. & 9 \\
+\hline
+\texttt{tests/test\_recommender\_} \newline \texttt{engine.py} & ALS bundle settings, trọng số interaction, cold user và danh sách publication id từ model recommendation. & 4 \\
+\hline
+\texttt{tests/test\_worker\_contract.py} & Validate payload RabbitMQ, download PDF tạm, webhook JSON compact và chữ ký HMAC \texttt{timestamp.body}. & 4 \\
+\hline
+\texttt{tests/integration/test\_api\_} \newline \texttt{contract\_and\_latency.py} & Health, semantic search và recommendation contract/latency với AI API thật; skip mặc định. & 3 skip \\
+\hline
+\textbf{Tổng cộng} & \textbf{44 pass, 3 skip} & \textbf{47} \\
+\hline
+\end{tabularx}
+\caption{Các file test AI Service đã hiện thực}
+\label{tab:ai_test_files}
+\end{table}
+\subsection{Nhóm test PDF processing và chunking}
+
+PDF là đầu vào gốc của pipeline nên nhóm kiểm thử kỹ bước làm sạch trước khi
+embedding. Test xác minh hệ thống loại bỏ header/footer lặp lại, số trang, ký
+tự null và khoảng trắng nhiễu; đồng thời vẫn giữ phần nội dung thật. Nhóm cũng
+thêm kiểm tra tham số \texttt{chunk\_size}/\texttt{chunk\_overlap} để tránh lỗi
+vòng lặp nếu overlap lớn hơn hoặc bằng chunk size.
+
+
+Nhóm test này phát hiện một lỗi thật: với trang rất ngắn, cùng một dòng có thể
+được tính hai lần khi lấy \texttt{lines[:3] + lines[-3:]}, khiến một dòng nội
+dung đầu trang bị nhận nhầm là header lặp. Nhóm đã sửa bằng cách chỉ đếm một
+signature một lần trên mỗi trang.
+
+\subsection{Nhóm test LLM metadata quality}
+
+Đây là nhóm test quan trọng nhất vì nó khóa chất lượng đầu ra của Gemini. Test
+không chỉ kiểm parse JSON, mà còn kiểm các rule nghiệp vụ: summary không được
+mô tả metadata/thư viện/file PDF, tag phải là tag tiếng Việt có giá trị tìm
+kiếm, tag generic bị loại, tag title/category bị loại và \texttt{tags\_en} phải
+khớp thứ tự với tag tiếng Việt sau khi lọc.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{|p{2.4cm}|p{4.7cm}|X|}
+\hline
+\textbf{Mã} & \textbf{Kịch bản} & \textbf{Kết quả mong đợi} \\
+\hline
+AI-META-01 & LLM trả JSON trong markdown fence hoặc có text thừa. & Trích được JSON hợp lệ, lỗi rõ khi output không phải JSON. \\
+\hline
+AI-META-02 & LLM trả tag generic như \texttt{Công Nghệ} hoặc tag trùng title. & Loại tag xấu và backfill bằng tag chuyên môn từ nội dung PDF. \\
+\hline
+AI-META-03 & LLM trả \texttt{tags\_en} theo danh sách ban đầu nhưng một số tag Việt bị loại. & Alias tiếng Anh vẫn đi cùng đúng tag Việt sau lọc, không bị lệch index. \\
+\hline
+AI-META-04 & Summary giống mô tả catalog: nhắc \texttt{metadata}, \texttt{thư viện}, \texttt{file PDF}. & Ném lỗi reduce để pipeline dùng fallback an toàn. \\
+\hline
+AI-META-05 & LLM lỗi hoặc không gọi được. & Fallback summary/tag dùng \texttt{CONTENT\_EXCERPTS}, đủ 5 tag và có alias tiếng Anh. \\
+\hline
+\end{tabularx}
+\caption{Test case chất lượng metadata AI}
+\label{tab:ai_metadata_tests}
+\end{table}
+
+
+Nhóm test này cũng phát hiện một lỗi thật trong \texttt{GeminiClient.\_reduce\_once}:
+khi tag xấu bị loại, danh sách \texttt{tags\_en} vẫn được align theo index cũ,
+làm alias tiếng Anh bị lệch sang tag khác. Nhóm đã sửa bằng cách giữ cặp
+tag--alias trong lúc lọc, sau đó mới backfill và gọi \texttt{align\_english\_tags}.
+
+\begin{lstlisting}[language=Python, caption={Test giữ đúng cặp tag tiếng Việt và alias tiếng Anh}, label={lst:ai_llm_tag_alias_test}]
+result = client._reduce_once(
+    "cheap",
+    ["Relational database design covers SQL, normalization and indexes."],
+    "Title: Database System Concepts"
+)
+
+assert result["tags"][0:2] == ["SQL", "Chuan Hoa Du Lieu"]
+assert result["tags_en"][0:2] == ["SQL", "Database Normalization"]
+\end{lstlisting}
+
+\subsection{Nhóm test ETL pipeline và database contract}
+
+Pipeline AI có nhiều bước liên tiếp: hash file, extract text, chunk, embedding,
+ghi vector, chọn representative chunk, reduce metadata, cập nhật summary, tag
+và alias. Các test pipeline kiểm phần logic thuần như chọn chunk đại diện theo
+centroid/diversity, cắt budget reduce, fallback khi LLM lỗi và tùy chọn dịch
+metadata tiếng Anh. Các test database dùng fake cursor để xác minh SQL ghi đúng
+schema final: vector nằm trong \texttt{ai\_engine.publication\_vectors}, tag
+canonical nằm trong \texttt{public.tags}, liên kết nằm trong
+\texttt{public.publication\_tags}, alias tiếng Anh nằm trong
+\texttt{public.tag\_translations}.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{|p{2.4cm}|p{4.8cm}|X|}
+\hline
+\textbf{Mã} & \textbf{Kịch bản} & \textbf{Kết quả mong đợi} \\
+\hline
+AI-ETL-01 & Chọn representative chunks từ nhiều vector. & Giữ context mở đầu, chọn chunk gần centroid và đa dạng theo MMR. \\
+\hline
+AI-ETL-02 & Reduce input vượt giới hạn ký tự. & Cắt từng chunk theo \texttt{AI\_ETL\_REDUCE\_MAX\_CHARS\_PER\_CHUNK} và dừng trước tổng budget. \\
+\hline
+AI-ETL-03 & LLM reduce lỗi. & Pipeline sinh fallback metadata, không ghép title/author/category thành summary. \\
+\hline
+AI-ETL-04 & Bật dịch metadata tiếng Anh. & Ghi \texttt{publication\_translations} và \texttt{tag\_translations}; nếu dịch lỗi thì trả \texttt{False} không làm hỏng pipeline chính. \\
+\hline
+AI-SQL-01 & Xóa dữ liệu AI cũ trước khi reprocess. & Xóa vector trong \texttt{ai\_engine} và tag link trong \texttt{public}. \\
+\hline
+AI-SQL-02 & Upsert tag và alias. & Dùng \texttt{public.tags}, \texttt{public.publication\_tags}, \texttt{public.tag\_translations}; không còn phụ thuộc \texttt{ai\_engine.tags}. \\
+\hline
+\end{tabularx}
+\caption{Test case ETL pipeline và SQL contract}
+\label{tab:ai_pipeline_sql_tests}
+\end{table}
+
+\subsection{Nhóm test API gateway, recommender và worker}
+
+Ở tầng API, nhóm kiểm thử các hành vi quyết định trải nghiệm tìm kiếm và gợi ý:
+query tiếng Việt được normalize bỏ dấu, query ngắn ưu tiên kết quả lexical trước
+semantic, query dài ưu tiên semantic/chunk keyword hơn, kết quả merge không
+trùng và vẫn giữ thứ tự rank. Với recommendation, test kiểm cold-start fallback
+sang trending, warm user merge content-based với ALS, ghi cache vào
+\texttt{public.ai\_recommendations} và ALS model trả publication id theo mapping
+đúng. Với worker, test kiểm payload RabbitMQ, download PDF tạm, callback JSON
+compact và chữ ký HMAC theo chuỗi \texttt{timestamp.body}.
+
+\begin{lstlisting}[language=Python, caption={Test chữ ký webhook callback của AI worker}, label={lst:ai_worker_hmac_test}]
+body = '{"book_id":12,"status":"SUCCESS"}'
+headers = _build_webhook_headers(body, "secret", timestamp="1700000000")
+
+expected = hmac.new(
+    b"secret",
+    b'1700000000.{"book_id":12,"status":"SUCCESS"}',
+    hashlib.sha256,
+).hexdigest()
+
+assert headers["X-AI-Callback-Signature"] == f"sha256={expected}"
+\end{lstlisting}
+
+
+\subsection{Kết quả thực thi AI}
+
+Bộ test AI cuối cùng chạy thành công toàn bộ phần offline. Ba test integration
+live được collect nhưng skip mặc định vì chúng yêu cầu AI API thật đang chạy và
+có dữ liệu/embedding trong database.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Chỉ số} & \textbf{Kết quả} \\
+\hline
+Test files & \textbf{9}. \\
+\hline
+Test cases collected & \textbf{47}. \\
+\hline
+Passed & \textbf{44}. \\
+\hline
+Skipped & \textbf{3} live integration tests. \\
+\hline
+Failures/Errors & \textbf{0}. \\
+\hline
+Thời gian chạy & Khoảng \textbf{3.94s} trên môi trường local. \\
+\hline
+Kết luận & Bộ test AI pass toàn bộ ở tầng unit/contract offline; test live được giữ để chạy khi có môi trường tích hợp. \\
+\hline
+\end{tabularx}
+\caption{Kết quả kiểm thử AI Service}
+\label{tab:ai_test_result}
+\end{table}
+
+\subsection{Kiểm thử tích hợp Gemini thật}
+
+Bên cạnh bộ regression offline, nhóm hiện thực kịch bản live để gọi Gemini thật
+trên một PDF mẫu. Script \texttt{scripts/run\_live\_gemini\_report.py} đọc file
+PDF bằng cùng hàm \texttt{extract\_pdf\_text}, chia chunk, gọi
+\texttt{GeminiClient.reduce\_publication}, đo thời gian xử lý và ghi kết quả
+JSON ra thư mục \texttt{figures/test-results}. Artifact JSON được thiết kế để
+lưu các trường cần nghiệm thu: \texttt{master\_summary}, \texttt{tags},
+\texttt{tags\_en}, \texttt{audience}, số chunk, số ký tự extract và thời gian
+xử lý.
+
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{figures/ch07/test-results/ai-gemini-live-result.png}{
+        \includegraphics[width=0.9\textwidth]{figures/ch07/test-results/ai-gemini-live-result.png}
+    }{
+        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: kết quả live Gemini tại \texttt{figures/ch07/test-results/ai-gemini-live-result.png}}}
+    }
+    \caption{Artifact chạy live Gemini trên PDF mẫu}
+    \label{fig:ai_gemini_live_result}
+\end{figure}
+
+Kịch bản live này kiểm tra trực tiếp khả năng gọi Gemini và sinh metadata từ PDF
+mẫu. Khi khóa API còn quota, artifact thành công chứa
+\texttt{master\_summary}, \texttt{tags}, \texttt{tags\_en}, \texttt{audience},
+số chunk và thời gian xử lý. Nếu Gemini trả lỗi quota/rate-limit, script ghi rõ
+trạng thái live thất bại, redact API key, rồi có thể chạy nhánh fallback xác
+định của AI ETL để vẫn nghiệm thu được phần đọc PDF, chia chunk và định dạng
+metadata đầu ra.
+
+\subsection{Đánh giá và giới hạn}
+
+Bộ test AI đã bao phủ các tính năng chính của service: xử lý PDF,
+chunking, metadata reduce, tag quality, fallback khi LLM lỗi, alias tiếng Anh,
+ghi SQL đúng schema, semantic search hybrid, recommendation CBF/ALS/trending và
+worker callback bảo mật. Quan trọng hơn, các test đã bắt được lỗi thật trong
+pipeline PDF và align \texttt{tags\_en}, qua đó giúp chất lượng AI output ổn
+định hơn trước khi demo.
+
+Giới hạn còn lại là các test offline chưa đo chất lượng ngôn ngữ thực tế của
+Gemini và chưa đo latency thật trên tập dữ liệu lớn. Vì vậy nhóm vẫn giữ 3 test
+integration live để chạy khi PostgreSQL, model embedding và AI API đang hoạt
+động; các test này phù hợp cho giai đoạn nghiệm thu tích hợp hoặc benchmark
+riêng, còn bộ 44 test offline phù hợp để chạy thường xuyên sau mỗi lần sửa code.
+
+\section{Kiểm thử theo yêu cầu phi chức năng}
+
+Bên cạnh kiểm thử chức năng theo từng phân hệ, nhóm đối chiếu lại các yêu cầu
+phi chức năng đã nêu ở Mục~\ref{subsec:YeuCauPhiChucNang}. Không phải mọi yêu
+cầu phi chức năng đều đo được hoàn toàn bằng unit test; ví dụ tính dễ học của
+giao diện vẫn cần đánh giá thủ công trong quá trình demo. Tuy nhiên, các yêu
+cầu có tiêu chí kỹ thuật rõ ràng như giới hạn truy vấn, timeout, fallback,
+phân quyền, chữ ký callback và cấu trúc module đều có thể được kiểm chứng bằng
+test tự động hoặc test contract.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{|p{3.1cm}|p{4.4cm}|X|p{2.1cm}|}
+\hline
+\textbf{Yêu cầu phi chức năng} & \textbf{Tiêu chí kiểm chứng được} & \textbf{Test/nhóm test liên quan} & \textbf{Kết quả} \\
+\hline
+Tính khả dụng & Các state toàn cục và helper UI phải nhất quán: ngôn ngữ, theme, thông báo, trạng thái đặt trước, lỗi nghiệp vụ và upload. & \texttt{LanguageContext}, \texttt{ThemeContext}, notification localization, \texttt{reservationUtils}, component dùng chung và service contract frontend. & 58/58 frontend pass. \\
+\hline
+Hiệu năng & Request có phân trang/giới hạn kết quả; truy vấn AI và recommendation không được nhận limit không kiểm soát; SQL dài có statement timeout. & Public search backend cap page size tối đa 50; AI semantic search cap \texttt{limit} theo cấu hình; recommender dùng \texttt{SET LOCAL statement\_timeout}; live latency test giữ để benchmark khi có môi trường thật. & Pass; live latency skip mặc định. \\
+\hline
+Độ tin cậy & Dịch vụ phụ trợ lỗi không được làm sập nghiệp vụ chính; AI/Gemini lỗi phải có fallback xác định. & AI gateway backend trả fallback khi HTTP 500; AI ETL fallback metadata khi LLM lỗi; recommendation fallback sang content-based/trending khi ALS lỗi; worker callback ghi trạng thái rõ ràng. & Pass. \\
+\hline
+Bảo mật & API nhạy cảm phải dựa trên JWT/role; callback/webhook phải xác thực chữ ký; upload PDF không đi qua endpoint mở tùy ý. & Auth/controller test, admin endpoint contract, PayOS webhook reject chữ ký sai, AI callback HMAC reject thiếu/sai chữ ký, frontend upload dùng presigned URL và raw axios. & Pass. \\
+\hline
+Khả năng bảo trì và mở rộng & Code tách theo frontend, backend module và AI service; hợp đồng giữa các service ổn định để thay đổi nội bộ không làm vỡ tích hợp. & 11 frontend suite, 23 backend test class và 9 AI test file tách theo module; service contract kiểm URL/payload; SQL contract kiểm schema \texttt{public}/\texttt{ai\_engine}. & Pass. \\
+\hline
+\end{tabularx}
+\caption{Đối chiếu kiểm thử với yêu cầu phi chức năng}
+\label{tab:nfr_test_mapping}
+\end{table}
+
+Từ bảng~\ref{tab:nfr_test_mapping}, các yêu cầu phi chức năng có khả năng
+kiểm chứng bằng mã nguồn đều đã được đưa vào bộ test regression. Phần hiệu năng
+ở mức unit/contract tập trung vào các ràng buộc chống quá tải như pagination,
+limit và timeout; phần đo latency thật được tách thành nhóm integration live để
+chỉ chạy khi có đủ backend, database, model embedding và dữ liệu mẫu. Cách tách
+này giúp bộ test thường xuyên vẫn chạy nhanh, đồng thời vẫn giữ được kịch bản
+nghiệm thu phi chức năng khi triển khai trong môi trường tích hợp. Các kết quả
+chạy test đã được lưu thành artifact ảnh tại
+\texttt{figures/ch07/test-results/} và được nhúng trực tiếp trong các mục kiểm
+thử frontend, backend và AI ở phía trên, nhờ đó phần đối chiếu phi chức năng
+không chỉ dừng ở mô tả mà có bằng chứng thực nghiệm đi kèm.

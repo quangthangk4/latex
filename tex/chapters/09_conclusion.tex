@@ -1,0 +1,135 @@
+% --- BẮT ĐẦU PHẦN TỔNG KẾT ---
+
+\chapter{Tổng kết}
+
+Dự án ``Hệ thống Quản lý Thư viện Trực tuyến tích hợp AI'' được xây dựng nhằm
+số hóa các nghiệp vụ thư viện, đồng thời cải thiện trải nghiệm tra cứu và gợi ý
+sách cho người dùng. Sau quá trình phân tích, thiết kế, hiện thực và kiểm thử,
+nhóm đã hoàn thiện một hệ thống có đầy đủ ba lớp chính: Back-end nghiệp vụ,
+Front-end người dùng và AI Service độc lập.
+
+\section{Kết quả đạt được}
+
+\subsection{Back-end nghiệp vụ}
+
+Back-end được xây dựng bằng Spring Boot theo hướng \textbf{Modular Monolith},
+tách thành các module có ranh giới rõ ràng:
+
+\begin{itemize}
+    \item \textbf{Auth/User:} Đăng ký, đăng nhập, JWT, refresh token, xác thực email,
+    OAuth2, hồ sơ người dùng, phân quyền theo vai trò.
+    \item \textbf{Catalog:} Quản lý ấn phẩm, tác giả, thể loại, nhà xuất bản, bản sao
+    sách, upload tài liệu và metadata phục vụ AI.
+    \item \textbf{Circulation:} Mượn/trả sách, đặt trước, xác nhận nhận sách, phí phạt,
+    thanh toán, dashboard thủ thư và các tác vụ định kỳ.
+    \item \textbf{Recommendation:} Wishlist, đánh giá sách, lịch sử tìm kiếm, gọi AI
+    Gateway, nhận callback xử lý AI có kiểm tra chữ ký.
+    \item \textbf{Shared Infrastructure:} Exception handling, audit log, email, storage,
+    Kafka/event, security annotation và các port dùng chung.
+\end{itemize}
+
+Cách tổ chức này giúp hệ thống giữ được cấu trúc rõ ràng, dễ mở rộng, nhưng
+không tạo thêm độ phức tạp vận hành như mô hình microservices hoàn chỉnh.
+
+\subsection{Front-end người dùng}
+
+Front-end được hiện thực bằng \textbf{React, TypeScript và Vite}. Ứng dụng chia
+rõ các vùng chức năng:
+
+\begin{itemize}
+    \item \textbf{Trang công khai:} Trang chủ, tìm kiếm, chi tiết sách, đăng nhập,
+    đăng ký, hướng dẫn và các trang thông tin.
+    \item \textbf{Khu vực độc giả:} Dashboard, sách đang mượn, đặt trước, phí phạt,
+    wishlist, hồ sơ, thông báo và tìm kiếm.
+    \item \textbf{Khu vực thủ thư/admin:} Quản lý đầu sách, bản sao, giao dịch,
+    lưu thông, người dùng, chính sách và dashboard vận hành.
+    \item \textbf{Trải nghiệm hệ thống:} Tự động refresh token, đa ngôn ngữ, dark mode,
+    thông báo realtime, upload panel và tích hợp các API AI.
+\end{itemize}
+
+\subsection{AI Service}
+
+AI Service được tách thành một dịch vụ độc lập bằng \textbf{Python FastAPI} và
+worker nền. Các chức năng chính gồm:
+
+\begin{itemize}
+    \item \textbf{Xử lý PDF:} Trích xuất văn bản bằng PyMuPDF, làm sạch nội dung,
+    chia chunk và bỏ qua xử lý lại khi file không thay đổi.
+    \item \textbf{Tìm kiếm ngữ nghĩa:} Sinh embedding bằng SBERT tiếng Việt, lưu vector
+    vào PostgreSQL/pgvector và truy vấn nearest-neighbor cho semantic search.
+    \item \textbf{Metadata AI:} Dùng Gemini ở bước reduce để tạo tóm tắt, đối tượng
+    độc giả và tag; có fallback deterministic khi LLM lỗi hoặc hết quota.
+    \item \textbf{Gợi ý sách:} Kết hợp ALS implicit feedback, content-based realtime
+    và trending fallback để phục vụ cả người dùng mới lẫn người dùng có lịch sử.
+    \item \textbf{Tích hợp bất đồng bộ:} Worker nhận message qua RabbitMQ/Celery và
+    callback kết quả về Back-end.
+\end{itemize}
+
+\subsection{Kiểm thử và chất lượng}
+
+Nhóm đã xây dựng bộ kiểm thử ở nhiều lớp:
+
+\begin{itemize}
+    \item Back-end có 79 test case trên 23 test class, bao phủ auth, catalog,
+    circulation, recommendation và các luồng tích hợp với PostgreSQL qua Testcontainers.
+    \item Front-end có Jest và Testing Library để kiểm thử service contract, xử lý lỗi,
+    ngôn ngữ, theme và các luồng giao diện quan trọng.
+    \item AI Service có pytest cho PDF processing, LLM client, SQL contract, worker
+    contract, recommender engine và API contract.
+\end{itemize}
+
+\subsection{Đóng gói và hạ tầng}
+
+Các thành phần chính đã được chuẩn bị Dockerfile và Docker Compose để phục vụ
+chạy thử, kiểm thử và định hướng triển khai. Nhóm cũng đã nghiên cứu mô hình
+triển khai với NGINX Reverse Proxy, biến môi trường, DNS, HTTPS/SSL và tách biệt
+môi trường build/runtime bằng multi-stage build.
+
+\section{Đánh giá}
+
+Nhìn chung, hệ thống đã đạt được các mục tiêu quan trọng của đồ án:
+
+\begin{itemize}
+    \item Hoàn thiện lõi nghiệp vụ thư viện từ quản lý sách đến mượn/trả, đặt trước,
+    phí phạt và thông báo.
+    \item Tích hợp AI theo hướng thực dụng, có API riêng, xử lý bất đồng bộ và có
+    cơ chế fallback khi dịch vụ AI bên ngoài không ổn định.
+    \item Front-end có đủ giao diện cho độc giả, thủ thư và admin, đồng thời kết nối
+    được với các luồng nghiệp vụ chính.
+    \item Kiến trúc tổng thể đủ rõ để tiếp tục mở rộng mà không cần viết lại toàn bộ
+    hệ thống.
+\end{itemize}
+
+\section{Hạn chế}
+
+Một số điểm vẫn cần tiếp tục hoàn thiện:
+
+\begin{itemize}
+    \item Chất lượng gợi ý phụ thuộc vào lượng tương tác của người dùng, nên vẫn còn
+    bài toán cold-start cho tài khoản hoặc đầu sách mới.
+    \item Pipeline AI phụ thuộc vào quota và độ ổn định của Gemini, dù đã có fallback
+    để giảm rủi ro.
+    \item Dữ liệu kiểm thử hiện còn giới hạn, chưa phản ánh đầy đủ quy mô vận hành của
+    một thư viện lớn.
+\end{itemize}
+
+\section{Hướng phát triển}
+
+Trong các phiên bản tiếp theo, hệ thống có thể được mở rộng theo các hướng:
+
+\begin{itemize}
+    \item Bổ sung cơ chế incremental indexing để cập nhật vector nhanh hơn khi sách
+    hoặc tài liệu thay đổi.
+    \item Cải thiện mô hình gợi ý bằng thêm tín hiệu hành vi và đánh giá thực tế từ
+    người dùng.
+    \item Mở rộng dashboard thống kê cho thủ thư và admin, hỗ trợ ra quyết định về
+    tồn kho, nhu cầu mượn và chất lượng tài liệu.
+\end{itemize}
+
+\section{Kết luận}
+
+Dự án đã xây dựng được một hệ thống quản lý thư viện trực tuyến có cấu trúc tốt,
+có khả năng xử lý các nghiệp vụ cốt lõi và tích hợp AI ở mức có thể vận hành thử
+nghiệm. Kết quả này tạo nền tảng vững chắc để nhóm tiếp tục hoàn thiện triển
+khai thực tế, tối ưu chất lượng gợi ý và mở rộng hệ thống cho các nhu cầu thư
+viện quy mô lớn hơn.

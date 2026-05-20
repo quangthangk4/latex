@@ -125,7 +125,7 @@
   breakatwhitespace=true,
   tabsize=3
 }
-\usepackage{tikz} 
+\usepackage{tikz}
 \usetikzlibrary{shapes, arrows.meta, shapes.geometric, positioning, fit, backgrounds, shadows, matrix}
 % ===================================================
 % 7. TẠO MỤC LỤC VÀ LIÊN KẾT (LOAD CUỐI CÙNG)
@@ -159,8 +159,8 @@
 {0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
 % Cấu hình Mục lục
-\renewcommand{\cfttoctitlefont}{\hfill\Huge\bfseries}
-\renewcommand{\cftaftertoctitle}{\hfill}
+\renewcommand{\cfttoctitlefont}{\Huge\bfseries}
+\renewcommand{\cftaftertoctitle}{}
 \renewcommand{\contentsname}{Mục lục}
 
 % ===================================================
@@ -172,7 +172,7 @@
 \fancyhead[L]{
  \begin{tabular}{rl}
     \begin{picture}(25,15)(0,0)
-    \put(0,-8){\includegraphics[width=8mm, height=8mm]{images/hcmut.jpg}}
+    \put(0,-8){\includegraphics[width=8mm, height=8mm]{figures/common/hcmut.jpg}}
     \end{picture}&
     \begin{tabular}{l}
         \textbf{\bf \ttfamily  TRƯỜNG ĐẠI HỌC BÁCH KHOA - ĐHQG-HCM}\\
@@ -196,6 +196,9 @@
 % BẮT ĐẦU NỘI DUNG DOCUMENT
 % ===================================================
 \begin{document}
+\hypersetup{pageanchor=false}
+\pagenumbering{roman}
+\pagestyle{empty}
 
 % --- TRANG BÌA ---
 \begin{titlepage}
@@ -220,7 +223,7 @@
 
     \begin{figure}[h!]
     \begin{center}
-     \includegraphics[width=3cm]{images/hcmut.jpg}
+     \includegraphics[width=3cm]{figures/common/hcmut.jpg}
     \end{center}
     \end{figure}
 
@@ -228,7 +231,7 @@
 
     \begin{center}
     \begin{tabular}{c}
-    \textbf{\Large BÁO CÁO ĐỒ ÁN CHUYÊN NGÀNH - GĐ1}\\
+    \textbf{\Large BÁO CÁO ĐỒ ÁN CHUYÊN NGÀNH}\\
     \\
     \hline
     \\
@@ -246,7 +249,7 @@
         \textbf{\large NHÓM: HAI ANH TRAI QUẢNG TRỊ} \\
     \end{center}
     \vspace{2cm}
-    
+
     \begin{table}[h]
         \centering
         \begin{tabular}{rrl}
@@ -256,20 +259,19 @@
              &                       & Hồ Sỹ Thắng - 2213188\\
         \end{tabular}
     \end{table}
-    
+
     \vspace{2cm}
     \begin{center}
-    {\footnotesize TPHCM, tháng 10 năm 2025}
+    {\footnotesize TPHCM, tháng 5 năm 2026}
     \end{center}
 \end{titlepage}
 
 \newpage
-% Đảm bảo bạn có các file này trong thư mục content/
-\input{content/i.Loi_Cam_On}
+\input{tex/frontmatter/01_acknowledgements}
 \newpage
-\input{content/ii.Tom_Tat}
+\input{tex/frontmatter/02_abstract}
 \newpage
-\input{content/phancong}
+\input{tex/frontmatter/03_team_assignment}
 \newpage
 
 % Table of contents
@@ -283,16 +285,21 @@
 \newpage
 
 % Nội dung chính
-\input{content/I.Introdution_project}
-\input{content/II.knowledgeAndTechnology}
-\input{content/III.relatedWorks}
-\input{content/IV.System_proposal}
-\input{content/V.Analysis_and_Design}
-\input{content/VI.implement}
-\input{content/VII.chapter5_testing.tex}
-\input{content/VIII.chapter6_deployment.tex}
-\input{content/VI.Tong_Ket}
-\input{content/VII.Resources}
+\cleardoublepage
+\hypersetup{pageanchor=true}
+\pagestyle{fancy}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\input{tex/chapters/01_introduction}
+\input{tex/chapters/02_background}
+\input{tex/chapters/03_related_work}
+\input{tex/chapters/04_system_proposal}
+\input{tex/chapters/05_analysis_design}
+\input{tex/chapters/06_implementation}
+\input{tex/chapters/07_testing}
+\input{tex/chapters/08_deployment}
+\input{tex/chapters/09_conclusion}
+\input{tex/appendices/01_project_resources}
 % Tài liệu tham khảo
 \newpage
 \addcontentsline{toc}{chapter}{Tài liệu tham khảo}

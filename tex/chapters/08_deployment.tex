@@ -1,0 +1,512 @@
+\chapter{Triển khai hệ thống}
+
+\section{Container hóa với Docker}
+
+\subsection{Giới thiệu Docker}
+
+Docker là một nền tảng mã nguồn mở được thiết kế để phát triển, đóng gói và chạy
+các ứng dụng~\cite{docker}. Docker giải quyết bài toán ``chạy được trên máy tôi
+nhưng không chạy được trên máy bạn'' bằng cách đóng gói ứng dụng cùng toàn bộ
+phụ thuộc---thư viện runtime, biến môi trường, file cấu hình---vào một đơn vị
+tiêu chuẩn gọi là \textit{container}. Đối với dự án này, Docker giúp giảm sai
+khác giữa môi trường phát triển cục bộ, kiểm thử và triển khai, đồng thời làm
+rõ các phụ thuộc hạ tầng như cơ sở dữ liệu, message broker và AI service.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figures/ch08/docker_logo.png}
+    \caption{Docker}
+    \label{fig:docker_logo}
+\end{figure}
+
+\subsection{Cấu hình môi trường phát triển cục bộ}
+
+Trong giai đoạn phát triển, Docker Compose được sử dụng để quản lý các thành
+phần hạ tầng chạy kèm ứng dụng. Phần backend dùng file
+\texttt{LMS\_BE/docker-compose.yml}, còn AI service dùng file
+\texttt{LMS-AI/docker-compose.yml}. Các dịch vụ hạ tầng cốt lõi gồm:
+
+\begin{itemize}
+    \item \textbf{PostgreSQL 15 + pgvector:} Cơ sở dữ liệu quan hệ chính của hệ
+          thống, đồng thời lưu vector embedding cho chức năng AI search và
+          recommendation. Dữ liệu được lưu trữ bền vững qua Docker volume
+          \texttt{postgres\_data}.
+
+    \item \textbf{Kafka 4.0.0 (KRaft mode):} Message broker xử lý giao tiếp
+          bất đồng bộ cho các luồng email và thông báo. Dự án sử dụng chế độ
+          KRaft (không cần ZooKeeper), giảm đáng kể độ phức tạp vận hành.
+          Dữ liệu Kafka được lưu trong volume \texttt{kafka\_data}.
+
+    \item \textbf{RabbitMQ:} Message broker riêng cho AI service. FastAPI nhận
+          yêu cầu xử lý tài liệu, sau đó Celery worker lấy job từ RabbitMQ để
+          chạy pipeline trích xuất PDF, tạo embedding, sinh summary/tag và gọi
+          webhook về backend.
+\end{itemize}
+
+Ứng dụng Spring Boot, giao diện React và AI API có thể chạy trực tiếp trên máy
+của nhà phát triển để tận dụng hot-reload. Khi cần kiểm thử gần với môi trường
+triển khai, từng thành phần có thể được build bằng Dockerfile tương ứng.
+
+\begin{verbatim}
+# Khởi động hạ tầng Backend
+cd LMS_BE && docker compose up -d
+
+# Chạy Backend
+mvn -f library-bootstrap/pom.xml spring-boot:run
+
+# Chạy Frontend
+cd ../LMS_fe && npm run dev
+
+# Khởi động hạ tầng AI
+cd ../LMS-AI && docker compose up -d rabbitmq
+\end{verbatim}
+
+\section{Dockerfile đa giai đoạn}
+
+Để triển khai lên môi trường sản xuất, mỗi thành phần được đóng gói thành
+Docker image riêng sử dụng kỹ thuật \textit{multi-stage build}---tách biệt
+giai đoạn biên dịch và giai đoạn chạy nhằm tối thiểu hóa kích thước image
+cuối cùng~\cite{docker_multistage}.
+
+\subsection{Backend Dockerfile}
+
+Dockerfile của Spring Boot bao gồm hai giai đoạn:
+
+\begin{itemize}
+    \item \textbf{Giai đoạn Build:} Sử dụng image \texttt{maven:3.9-eclipse-temurin-21-alpine}.
+          Các file \texttt{pom.xml} được sao chép trước để Docker cache lớp
+          phụ thuộc Maven---chỉ tải lại khi \texttt{pom.xml} thay đổi, không
+          phải mỗi lần build. Sau đó toàn bộ mã nguồn được sao chép và build
+          với lệnh \texttt{mvn package -DskipTests -pl library-bootstrap -am}.
+
+    \item \textbf{Giai đoạn Runtime:} Sử dụng image \texttt{eclipse-temurin:21-jre-alpine}---
+          chỉ chứa Java Runtime Environment, không có Maven hay mã nguồn.
+          File JAR được sao chép từ giai đoạn build sang. Kích thước image
+          cuối cùng giảm đáng kể so với image chứa đầy đủ JDK và Maven.
+\end{itemize}
+
+\subsection{Frontend Dockerfile}
+
+Dockerfile của React cũng sử dụng hai giai đoạn:
+
+\begin{itemize}
+    \item \textbf{Giai đoạn Build:} Sử dụng \texttt{node:20-alpine}, cài đặt
+          phụ thuộc qua \texttt{npm ci} và chạy \texttt{npm run build} (Vite)
+          để tạo ra thư mục \texttt{/dist} chứa các file tĩnh đã được tối ưu.
+          URL API được truyền vào lúc build qua build argument
+          \texttt{VITE\_API\_BASE\_URL=/api/v1}.
+
+    \item \textbf{Giai đoạn Runtime:} Sử dụng \texttt{nginx:alpine} phục vụ
+          các file tĩnh từ \texttt{/usr/share/nginx/html}. Cấu hình Nginx
+          của frontend được thiết lập để chuyển hướng tất cả các route về
+          \texttt{index.html}, hỗ trợ React Router hoạt động đúng khi người
+          dùng truy cập trực tiếp vào URL.
+\end{itemize}
+
+\subsection{AI Service Dockerfile}
+
+Dockerfile của AI service đóng gói ứng dụng Python/FastAPI và Celery worker
+trong cùng một image. Image nền là \texttt{python:3.10-slim}; quá trình build
+cài thêm các gói hệ thống cần cho PostgreSQL, xử lý PDF và health check như
+\texttt{libpq-dev}, \texttt{postgresql-client}, \texttt{poppler-utils} và
+\texttt{curl}. Sau đó Dockerfile cài dependencies từ \texttt{requirements.txt},
+sao chép mã nguồn vào \texttt{/app} và dùng các script riêng để chạy API server
+hoặc worker.
+
+Trong môi trường chạy, cùng một image được dùng cho hai container:
+\texttt{api\_server} phục vụ REST API tại cổng \texttt{8001}, và
+\texttt{celery\_worker} xử lý các job nặng như extract PDF, embedding, gọi
+Gemini, ghi metadata và gửi callback về backend. Cách tách process này giúp
+request từ backend không bị chặn bởi tác vụ AI dài.
+
+\section{Nginx --- Reverse Proxy}
+
+\subsection{Vai trò của Nginx}
+
+Nginx đóng vai trò là reverse proxy trung tâm, tiếp nhận toàn bộ traffic từ
+bên ngoài trên cổng 80 và định tuyến đến đúng dịch vụ nội bộ~\cite{nginx}.
+Kiến trúc này mang lại hai lợi ích chính: thứ nhất, các cổng nội bộ của từng
+container (8080 cho Backend, 80 cho Frontend) không bị lộ ra internet; thứ hai,
+client chỉ cần giao tiếp với một địa chỉ duy nhất.
+
+\subsection{Cấu hình định tuyến}
+
+File cấu hình \texttt{nginx/nginx.conf} được thiết kế theo nguyên tắc: Nginx là điểm vào duy nhất của hệ thống, còn các dịch vụ Spring Boot và React chỉ được truy cập qua mạng nội bộ Docker. Khi nhận request, Nginx kiểm tra đường dẫn theo các \texttt{location} cụ thể trước, sau đó mới dùng rule mặc định cho frontend. Cách tách này giúp cùng một domain có thể phục vụ đồng thời REST API, WebSocket real-time và React SPA.
+
+\begin{itemize}
+    \item \textbf{\texttt{/ws}}: chuyển tiếp kết nối WebSocket STOMP/SockJS đến Spring Boot tại \texttt{spring-boot:8080}. Location này cần giữ \texttt{proxy\_http\_version 1.1}, truyền header \texttt{Upgrade} và \texttt{Connection} để Nginx không xử lý request như HTTP thông thường. \texttt{proxy\_read\_timeout} được đặt dài hơn các request REST để kết nối real-time không bị ngắt sớm.
+
+    \item \textbf{\texttt{/api/}}: chuyển tiếp toàn bộ REST API đến Spring Boot. Nginx bổ sung các header như \texttt{Host}, \texttt{X-Real-IP}, \texttt{X-Forwarded-For} và \texttt{X-Forwarded-Proto} để backend vẫn nhận biết được domain, giao thức và địa chỉ IP gốc của client.
+
+    \item \textbf{\texttt{/}}: xử lý các route còn lại bằng React frontend. Vì frontend là SPA, Nginx phục vụ file tĩnh và fallback về \texttt{index.html} để các route như \texttt{/publicpage/search} hoặc \texttt{/userpage/dashboard} không bị lỗi 404 khi người dùng refresh trực tiếp trên trình duyệt.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small\sffamily,
+    node distance=1.2cm and 1.4cm,
+    box/.style={draw, rounded corners=3pt, align=center, inner sep=6pt, minimum height=1.25cm},
+    client/.style={box, fill=gray!12, draw=gray!60!black, text width=4.5cm},
+    proxy/.style={box, fill=blue!8, draw=blue!55!black, very thick, text width=4.8cm},
+    rule/.style={box, fill=white, draw=blue!35!black, text width=3.8cm},
+    target/.style={box, fill=green!7, draw=green!45!black, text width=4.4cm},
+    spa/.style={box, fill=orange!8, draw=orange!60!black, text width=4.4cm},
+    arrow/.style={-{stealth[length=2.5mm,width=1.5mm]}, thick, draw=blue!35!black},
+    note/.style={font=\scriptsize, align=center, fill=white, inner sep=1pt}
+]
+    \node[client] (browser) {\textbf{Client / Browser}\\\texttt{https://domain}};
+    \node[proxy, below=of browser] (nginx) {\textbf{Nginx Reverse Proxy}\\public port \texttt{80/443}};
+
+    \node[rule, below left=1.35cm and 4.2cm of nginx] (wsrule) {\textbf{Rule 1}\\\texttt{location /ws}\\WebSocket upgrade};
+    \node[rule, below=1.35cm of nginx] (apirule) {\textbf{Rule 2}\\\texttt{location /api/}\\REST API};
+    \node[rule, below right=1.35cm and 4.2cm of nginx] (sparule) {\textbf{Rule 3}\\\texttt{location /}\\SPA fallback};
+
+    \node[target, below=1.2cm of apirule, xshift=-2.8cm] (backend) {\textbf{Spring Boot Backend}\\internal: \texttt{spring-boot:8080}\\REST + WebSocket};
+    \node[spa, below=1.2cm of sparule] (frontend) {\textbf{React Frontend}\\internal Nginx static\\\texttt{try\_files \$uri /index.html}};
+
+    \draw[arrow] (browser) -- node[note, right]{HTTP/HTTPS request} (nginx);
+    \draw[arrow] (nginx) -- node[note, above left]{prefix \texttt{/ws}} (wsrule);
+    \draw[arrow] (nginx) -- node[note, right]{prefix \texttt{/api/}} (apirule);
+    \draw[arrow] (nginx) -- node[note, above right]{default route} (sparule);
+
+    \draw[arrow] (wsrule) |- node[note, left]{Upgrade + long timeout} (backend);
+    \draw[arrow] (apirule) -- node[note, left]{proxy headers} (backend);
+    \draw[arrow] (sparule) -- node[note, right]{static files / \texttt{index.html}} (frontend);
+
+    \node[draw=gray!50, rounded corners=3pt, dashed, fit=(nginx) (wsrule) (apirule) (sparule) (backend) (frontend), inner sep=10pt, label={[font=\scriptsize\bfseries, text=gray!55!black]above right:Docker network}] {};
+\end{tikzpicture}%
+}
+\caption{Luồng định tuyến request qua Nginx reverse proxy}
+\label{fig:nginx_routing}
+\end{figure}
+
+Hình~\ref{fig:nginx_routing} chỉ tập trung vào trách nhiệm định tuyến của Nginx. Hai nhóm request động, \texttt{/ws} và \texttt{/api/}, được chuyển đến backend Spring Boot; trong đó WebSocket cần cấu hình upgrade connection, còn REST API cần giữ các header proxy để backend ghi log và xử lý bảo mật chính xác. Các request không khớp hai rule trên được xem là route frontend và được chuyển về React SPA. Nhờ đó người dùng chỉ nhìn thấy một domain duy nhất, trong khi cấu trúc container phía sau vẫn được tách biệt rõ ràng.
+
+\section{Môi trường sản xuất}
+
+\subsection{Docker Compose sản xuất}
+
+Trong repository hiện tại, cấu hình container được tách theo từng thành phần:
+\texttt{LMS\_BE/docker-compose.yml} quản lý PostgreSQL và Kafka cho backend,
+còn \texttt{LMS-AI/docker-compose.yml} quản lý RabbitMQ, FastAPI API server và
+Celery worker. Frontend và backend có Dockerfile riêng để build image triển
+khai. Khi đưa lên server, các thành phần này cần được đặt trong cùng một mạng
+triển khai hoặc được cấu hình endpoint rõ ràng thông qua biến môi trường.
+
+Luồng kết nối quan trọng nhất là backend gọi AI qua
+\texttt{AI\_GATEWAY\_BASE\_URL}, còn AI service gọi ngược backend qua
+\texttt{BACKEND\_WEBHOOK\_URL}. Secret ký callback của hai phía phải khớp nhau:
+\texttt{AI\_CALLBACK\_SECRET} ở backend và \texttt{BACKEND\_WEBHOOK\_SECRET}
+ở AI service.
+
+Một điểm khác biệt quan trọng so với cấu hình phát triển là giá trị
+\texttt{KAFKA\_CFG\_ADVERTISED\_LISTENERS} được thay đổi từ
+\texttt{PLAINTEXT://localhost:9092} thành \texttt{PLAINTEXT://kafka:9092}.
+Trong môi trường phát triển, Spring Boot chạy trên máy host nên dùng
+\texttt{localhost}; trong môi trường container, Spring Boot nằm trong một
+container khác và phải kết nối đến Kafka qua tên service Docker.
+
+\begin{verbatim}
+# Hạ tầng Backend
+cd LMS_BE && docker compose up -d
+
+# AI Service
+cd ../LMS-AI && docker compose up -d --build
+
+# Build image Backend và Frontend khi triển khai container hóa đầy đủ
+cd ../LMS_BE && docker build -t lms-backend .
+cd ../LMS_fe && docker build -t lms-frontend .
+\end{verbatim}
+
+\subsection{Quản lý biến môi trường và bảo mật}
+
+Tất cả thông tin nhạy cảm của hệ thống được quản lý thông qua file \texttt{.env}
+và không bao giờ được đưa vào mã nguồn (được liệt kê trong \texttt{.gitignore}).
+Bảng~\ref{tab:env_vars} liệt kê các nhóm biến môi trường chính.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Các nhóm biến môi trường của hệ thống}
+\label{tab:env_vars}
+\begin{tabularx}{\textwidth}{|p{2.8cm}|p{6.3cm}|X|}
+\hline
+\textbf{Nhóm} & \textbf{Biến} & \textbf{Mục đích} \\
+\hline
+Cơ sở dữ liệu
+  & \texttt{DATABASE\_URL} \newline
+    \texttt{DATABASE\_USERNAME} \newline
+    \texttt{DATABASE\_PASSWORD}
+  & Kết nối PostgreSQL \\
+\hline
+JWT
+  & \texttt{EXP\_TOKEN} \newline
+    \texttt{EXP\_REFRESH\_TOKEN}
+  & Thời hạn Access/Refresh token \\
+\hline
+OAuth2 Google
+  & \texttt{GOOGLE\_CLIENT\_ID} \newline
+    \texttt{GOOGLE\_CLIENT\_SECRET} \newline
+    \texttt{OAUTH2\_REDIRECT\_URI}
+  & Đăng nhập Google \\
+\hline
+Email
+  & \texttt{MAIL\_SENDER\_USERNAME} \newline
+    \texttt{MAIL\_SENDER\_PASSWORD}
+  & Gửi email qua SMTP \\
+\hline
+AWS S3
+  & \texttt{AWS\_ACCESS\_KEY} \newline
+    \texttt{AWS\_SECRET\_KEY}
+  & Lưu trữ file (ảnh bìa, tài liệu) \\
+\hline
+AI Gateway
+  & \texttt{AI\_GATEWAY\_BASE\_URL} \newline
+    \texttt{AI\_CALLBACK\_SECRET} \newline
+    \texttt{AI\_CALLBACK\_MAX\_CLOCK\_} \newline
+    \texttt{SKEW\_SECONDS}
+  & Backend gọi AI service và xác thực callback \\
+\hline
+AI Service
+  & \texttt{GEMINI\_API\_KEY} \newline
+    \texttt{RABBITMQ\_URL} \newline
+    \texttt{BACKEND\_WEBHOOK\_URL} \newline
+    \texttt{BACKEND\_WEBHOOK\_SECRET}
+  & Chạy FastAPI, Celery, Gemini và webhook \\
+\hline
+PayOS
+  & \texttt{CLIENT\_ID\_PAYOS} \newline
+    \texttt{API\_KEY\_PAYOS} \newline
+    \texttt{CHECKSUM\_KEY\_PAYOS}
+  & Tạo và xác thực thanh toán phí phạt \\
+\hline
+Frontend
+  & \texttt{VITE\_API\_BASE\_URL} \newline
+    \texttt{VITE\_API\_TIMEOUT}
+  & Cấu hình endpoint API và timeout khi build Vite \\
+\hline
+\end{tabularx}
+\end{table}
+
+Khi triển khai lên máy chủ, mỗi thành phần có file môi trường riêng:
+\texttt{LMS\_BE/.env}, \texttt{LMS-AI/.env} và cấu hình build cho
+\texttt{LMS\_fe}. Các file này được tạo từ \texttt{.env.example}, điền giá trị
+thực tế trên server và không đưa vào lịch sử git. Với Docker Compose, các biến
+được tham chiếu qua \texttt{env\_file} hoặc truyền vào build argument để tránh
+nhúng secret vào Docker image.
+
+\subsection{Các điểm cần hardening trước khi public}
+
+Trước khi mở hệ thống ra internet, cấu hình triển khai cần được rà soát để
+giảm bề mặt tấn công và tránh rò rỉ dữ liệu vận hành. Các điểm quan trọng gồm:
+
+\begin{itemize}
+    \item Giới hạn CORS theo domain frontend thật thay vì cho phép tất cả
+          origin khi dùng credential.
+    \item Tắt các cấu hình phục vụ debug như log SQL chi tiết hoặc devtools
+          trong profile production.
+    \item Không ánh xạ trực tiếp PostgreSQL, Kafka, RabbitMQ và Celery worker
+          ra internet; chỉ mở cổng HTTP/HTTPS cần phục vụ người dùng.
+    \item Đảm bảo secret callback giữa backend và AI service khớp nhau, có độ
+          dài đủ mạnh và không dùng lại secret mẫu trong \texttt{.env.example}.
+    \item Phân quyền file \texttt{.env} trên server, chỉ cho user chạy dịch vụ
+          đọc được.
+\end{itemize}
+
+\subsection{Flyway Migration tự động}
+
+Hệ thống sử dụng Flyway để quản lý phiên bản schema cơ sở dữ liệu. Khi
+container Spring Boot khởi động, Flyway tự động thực thi các file migration
+chưa được áp dụng theo thứ tự phiên bản trước khi ứng dụng nhận request.
+Điều này đảm bảo schema cơ sở dữ liệu luôn đồng bộ với phiên bản ứng dụng
+mà không cần can thiệp thủ công.
+
+\begin{verbatim}
+library-bootstrap/src/main/resources/db/migration/
++-- V1__create_schema.sql
++-- V8__ai_publication_etl_status.sql
++-- V14__metadata_translations.sql
++-- V20__schema_cleanup_and_ai_indexes.sql
+\-- V22__cleanup_ai_metadata_junk.sql
+\end{verbatim}
+
+\subsection{Sơ đồ kiến trúc triển khai}
+
+Hình~\ref{fig:deployment_detail} mô tả chi tiết luồng traffic từ người dùng
+đến từng thành phần của hệ thống trong môi trường sản xuất.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{figures/ch08/deployment_detail.png}
+    \caption{Luồng traffic qua các container trong môi trường sản xuất}
+    \label{fig:deployment_detail}
+\end{figure}
+
+Các container ứng dụng và hạ tầng được cấu hình giao tiếp qua tên service hoặc
+endpoint nội bộ. Chỉ các cổng cần phục vụ người dùng mới nên được ánh xạ ra
+ngoài; các dịch vụ nội bộ như PostgreSQL, Kafka, RabbitMQ và Celery worker
+không nên mở trực tiếp ra internet.
+
+\section{Quy trình triển khai}
+
+Quy trình triển khai hệ thống lên một máy chủ Linux mới bao gồm các bước sau:
+
+\begin{enumerate}
+    \item \textbf{Chuẩn bị máy chủ:} Cài đặt Docker Engine và Docker Compose
+          Plugin trên máy chủ Ubuntu.
+
+    \begin{verbatim}
+curl -fsSL https://get.docker.com | sh
+    \end{verbatim}
+
+    \item \textbf{Sao chép mã nguồn:} Clone repository về máy chủ.
+
+    \begin{verbatim}
+git clone <repository-url>
+cd LMS
+    \end{verbatim}
+
+    \item \textbf{Cấu hình môi trường:} Tạo file \texttt{.env} từ template và
+          điền các giá trị thực tế (database credentials, API keys, v.v.).
+
+    \begin{verbatim}
+cp LMS_BE/.env.example LMS_BE/.env
+cp LMS-AI/.env.example LMS-AI/.env
+cp LMS_fe/.env.example LMS_fe/.env
+# Chỉnh sửa các file .env với giá trị thực tế
+    \end{verbatim}
+
+    \item \textbf{Khởi động hệ thống:} Build image và khởi động tất cả container.
+
+    \begin{verbatim}
+cd LMS_BE && docker compose up -d
+cd ../LMS-AI && docker compose up -d --build
+    \end{verbatim}
+
+    \item \textbf{Kiểm tra trạng thái:} Xác nhận tất cả container đang chạy.
+
+    \begin{verbatim}
+cd LMS_BE && docker compose ps
+cd ../LMS-AI && docker compose ps
+docker logs lms_ai_api
+docker logs lms_ai_worker
+    \end{verbatim}
+\end{enumerate}
+
+Sau khi khởi động, Flyway tự động chạy các migration của backend. AI service
+kiểm tra schema AI, kết nối RabbitMQ, tải model embedding khi cần và sẵn sàng
+nhận request tại endpoint đã cấu hình.
+
+\section{Hạ tầng mạng: VPS, Domain và HTTPS}
+
+\subsection{Máy chủ ảo (VPS)}
+
+Để một ứng dụng web có thể truy cập từ internet, hệ thống cần được triển khai
+trên một máy chủ có địa chỉ IP công cộng hoạt động liên tục 24/7. Giải pháp
+phổ biến nhất là thuê \textit{Virtual Private Server} (VPS)---một máy chủ ảo
+được cấp phát tài nguyên CPU, RAM và ổ đĩa riêng biệt trên hạ tầng vật lý của
+nhà cung cấp dịch vụ đám mây~\cite{vps}.
+
+Đối với hệ thống thư viện này, cấu hình tối thiểu nên ở mức \textbf{4GB RAM}
+nếu chỉ chạy backend, frontend và hạ tầng cơ bản. Khi chạy thêm AI service,
+RabbitMQ, Celery worker và embedding model trên cùng máy, cấu hình
+\textbf{8GB RAM} sẽ ổn định hơn. Bảng~\ref{tab:vps_options} so sánh một số nhà
+cung cấp VPS phổ biến.
+
+\begin{table}[h]
+\centering
+\caption{So sánh các nhà cung cấp VPS phổ biến}
+\label{tab:vps_options}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Nhà cung cấp} & \textbf{RAM} & \textbf{Giá} & \textbf{Ghi chú} \\
+\hline
+Hetzner Cloud (CX22)   & 4 GB & €4/tháng  & Giá rẻ, datacenter EU \\
+\hline
+DigitalOcean (Basic)   & 1 GB & \$6/tháng & Phổ biến, dễ sử dụng \\
+\hline
+Vultr (Regular)        & 1 GB & \$5/tháng & Nhiều khu vực \\
+\hline
+Oracle Cloud Free Tier & 1 GB & Miễn phí  & Vĩnh viễn, ARM architecture \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Tên miền (Domain)}
+
+Sau khi có VPS với địa chỉ IP công cộng (ví dụ: \texttt{103.45.67.89}), hệ
+thống đã có thể truy cập trực tiếp qua IP. Tuy nhiên, để có địa chỉ thân
+thiện và dễ nhớ, cần mua thêm một \textit{tên miền}---ví dụ
+\texttt{smartlibrary.vn} hoặc \texttt{lms-hcmut.com}. Tên miền được đăng ký
+thông qua các nhà cung cấp như GoDaddy, Namecheap hoặc các nhà đăng ký tên
+miền Việt Nam.
+
+Sau khi mua tên miền, cần cấu hình bản ghi DNS loại \textbf{A record} trỏ tên
+miền về địa chỉ IP của VPS. Quá trình phân giải DNS diễn ra tự động, thông
+thường có hiệu lực trong vòng vài phút đến 24 giờ. Hình~\ref{fig:dns_flow}
+minh họa luồng kết nối từ người dùng đến hệ thống.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/ch09/dns_flow.png}
+    \caption{Luồng kết nối từ tên miền đến hệ thống}
+    \label{fig:dns_flow}
+\end{figure}
+
+\subsection{HTTPS và SSL/TLS Certificate}
+
+Các trình duyệt hiện đại cảnh báo người dùng khi truy cập trang web qua HTTP
+không mã hóa. Để bảo mật dữ liệu truyền tải---đặc biệt là JWT token, thông
+tin đăng nhập và dữ liệu cá nhân---hệ thống cần được cấu hình HTTPS thông qua
+SSL/TLS certificate~\cite{letsencrypt}.
+
+\textbf{Let's Encrypt} là tổ chức phi lợi nhuận cung cấp SSL certificate hoàn
+toàn miễn phí và tự động. Công cụ \textbf{Certbot} tích hợp trực tiếp với
+Nginx, tự động xác minh quyền sở hữu tên miền, cấp certificate và cập nhật
+cấu hình Nginx để lắng nghe trên cổng 443 (HTTPS):
+
+\begin{verbatim}
+# Cài đặt Certbot
+apt install certbot python3-certbot-nginx
+
+# Cấp certificate và tự động cấu hình Nginx
+certbot --nginx -d smartlibrary.vn -d www.smartlibrary.vn
+\end{verbatim}
+
+Certificate Let's Encrypt có hiệu lực 90 ngày và được Certbot tự động gia hạn
+qua cron job, không cần can thiệp thủ công.
+
+\subsection{Tổng chi phí vận hành}
+
+Bảng~\ref{tab:hosting_cost} tổng hợp chi phí tham khảo để vận hành hệ thống
+trong môi trường sản xuất với tên miền và HTTPS đầy đủ. Các giá trị này phụ
+thuộc vào nhà cung cấp, khu vực đặt máy chủ, dung lượng lưu trữ và mức sử dụng
+thực tế.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Chi phí vận hành hệ thống ước tính}
+\label{tab:hosting_cost}
+\begin{tabularx}{\textwidth}{|p{3.5cm}|p{3.3cm}|p{2cm}|X|}
+\hline
+\textbf{Thành phần} & \textbf{Chi phí} & \textbf{Chu kỳ} & \textbf{Ghi chú} \\
+\hline
+VPS (4--8GB RAM)     & ~90.000--250.000đ  & Tháng   & Tùy có chạy AI service trên cùng máy hay không \\
+\hline
+Tên miền \texttt{.com} & ~300.000đ & Năm     & Qua Namecheap, GoDaddy \\
+\hline
+SSL Certificate      & Miễn phí  & 90 ngày & Let's Encrypt, tự gia hạn \\
+\hline
+AWS S3 (lưu trữ)     & ~23.000đ  & Tháng   & 1GB storage + transfer \\
+\hline
+\textbf{Tổng}        & \textbf{$\approx$140.000--300.000đ} & \textbf{Tháng} & Chưa tính domain năm đầu \\
+\hline
+\end{tabularx}
+\end{table}
+
+\noindent Mức chi phí này cho thấy hệ thống có thể triển khai thực tế với ngân
+sách vừa phải, nhưng cần điều chỉnh cấu hình máy chủ theo việc có chạy AI
+service và model embedding trên cùng VPS hay tách sang máy riêng.
