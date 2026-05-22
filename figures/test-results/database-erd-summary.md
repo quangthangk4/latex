@@ -1,4 +1,4 @@
-# SmartLibrary LMS - Database / ERD Summary
+# Library 74 LMS - Database / ERD Summary
 
 Generated: 2026-05-19 11:44 +0700
 

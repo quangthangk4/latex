@@ -1,4 +1,4 @@
-SmartLibrary LMS - Backend Maven/Testcontainers Result
+Library 74 LMS - Backend Maven/Testcontainers Result
 Generated at: 2026-05-19 18:39:56
 Command: DOCKER_HOST=unix:///Users/hosythang/.docker/run/docker.sock mvn test -q
 Status: PASS
