@@ -2,2191 +2,775 @@
 
 \section{Hiện thực ứng dụng}
 
-Phần hiện thực được tổ chức theo ba lớp triển khai chính của hệ thống: frontend,
-backend và AI service. Mục này trình bày frontend, backend và AI service, tương
-ứng với lớp giao diện tiếp nhận thao tác từ độc giả/thủ thư/admin, lớp API xử lý nghiệp
-vụ và lớp AI phục vụ xử lý tài liệu, tìm kiếm ngữ nghĩa, gợi ý sách.
+Phần hiện thực được tổ chức theo ba lớp triển khai chính của hệ thống:
+frontend, backend và AI service. Để tránh báo cáo bị dàn trải, chương này trình
+bày theo dạng tổng hợp những gì nhóm đã hiện thực, thay vì mô tả tuần tự từng
+màn hình hoặc từng hàm. Cách trình bày này giúp thể hiện đầy đủ phạm vi công
+việc đã làm nhưng vẫn giữ báo cáo ngắn gọn.
 
 \subsection{Hiện thực Frontend}
 
 Nhóm đã hiện thực frontend bằng React, TypeScript và Vite theo mô hình Single
-Page Application. Lớp giao diện không chỉ đảm nhiệm hiển thị dữ liệu, mà còn
-điều phối trạng thái đăng nhập, phân vùng giao diện theo vai trò, gọi API nghiệp
-vụ, nhận thông báo thời gian thực, hiển thị QR nhận sách và hỗ trợ thanh toán phí
-phạt qua PayOS. Mã nguồn được chia theo trách nhiệm: \texttt{pages} chứa màn hình
+Page Application. Frontend đảm nhiệm hiển thị dữ liệu, điều phối trạng thái đăng
+nhập, phân vùng giao diện theo vai trò, gọi API nghiệp vụ, nhận thông báo thời
+gian thực, upload tài liệu, hiển thị QR nhận sách và hỗ trợ thanh toán phí phạt
+qua PayOS. Mã nguồn được chia theo trách nhiệm: \texttt{pages} chứa màn hình
 nghiệp vụ, \texttt{components} chứa thành phần tái sử dụng, \texttt{contexts}
 chứa state dùng chung, \texttt{api} đóng gói HTTP service và \texttt{utils} chứa
 các hàm xử lý thuần.
 
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/frontend_structure.png}{
-        % Khống chế chiều cao tối đa bằng 70% chiều cao vùng text để tuyệt đối không tràn trang
-        \includegraphics[height=0.7\textheight,keepaspectratio]{figures/ch06/frontend/frontend_structure.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.5\textwidth}{\centering Placeholder: thêm ảnh cấu trúc thư mục mã nguồn Frontend tại \texttt{figures/ch06/frontend/frontend_structure.png}}}
-    }
-    \caption{Cấu trúc thư mục mã nguồn Frontend}
-    \label{fig:source_fe}
-\end{figure}
-\subsubsection{Kiến trúc mã nguồn và cấu hình build}
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    box/.style={draw, rounded corners=3pt, align=center, minimum height=1.1cm, text width=3.4cm},
-    wide/.style={draw, rounded corners=3pt, align=center, minimum height=1.1cm, text width=4.2cm},
-    arrow/.style={-{Latex[length=2.5mm]}, thick}
-]
-    % --- TẦNG 1: Khởi chạy ---
-    \node[wide, fill=blue!8] (entry) {\texttt{index.tsx}\\React root};
-    \node[wide, fill=blue!8, right=1.8cm of entry] (app) {\texttt{App.tsx}\\Providers + Router};
+Để đáp ứng độ phức tạp của một hệ thống nghiệp vụ tích hợp AI và thanh toán, phân hệ Frontend được thiết kế tuân thủ nghiêm ngặt nguyên lý phân tách trách nhiệm (Separation of Concerns). Hình \ref{fig:fe_architecture_and_structure} minh họa chi tiết sơ đồ kiến trúc luồng dữ liệu (Data Flow) cùng với cấu trúc thư mục thực tế của dự án.
 
-    % --- TẦNG 2: Core Modules ---
-    \node[box, fill=green!8, below=1.5cm of app] (components) {\texttt{components}\\UI/layout};
-    \node[box, fill=green!8, left=1.0cm of components] (pages) {\texttt{pages}\\Route screens};
-    \node[box, fill=orange!10, right=1.0cm of components] (contexts) {\texttt{contexts}\\Shared state};
-
-    % --- TẦNG 3: Infrastructure / Supporting ---
-    \node[box, fill=gray!12, below=1.5cm of components] (utils) {\texttt{utils}\\Pure helpers};
-    \node[box, fill=purple!8, left=1.0cm of utils] (api) {\texttt{api}\\HTTP services};
-    \node[box, fill=purple!8, right=1.0cm of utils] (assets) {\texttt{public}\\Assets};
-
-    % --- ĐƯỜNG MŨI TÊN ---
-    \draw[arrow] (entry) -- (app);
-    \draw[arrow] (app) -- (pages);
-    \draw[arrow] (app) -- (components);
-    \draw[arrow] (app) -- (contexts);
-
-    \draw[arrow] (pages) -- (api);
-    \draw[arrow] (pages) -- (utils);
-    \draw[arrow] (components) -- (contexts);
-    \draw[arrow] (components) -- (assets);
-\end{tikzpicture}
-\caption{Quan hệ giữa các nhóm module Frontend}
-\label{fig:fe_module_architecture}
-\end{figure}
-
-
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
-\hline
-\textbf{Thành phần} & \textbf{Hiện thực} \\
-\hline
-Runtime & React 19, TypeScript, Vite. \\
-\hline
-Routing & \texttt{react-router-dom} với \texttt{HashRouter}, \texttt{React.lazy} và \texttt{Suspense}. \\
-\hline
-Network & \texttt{axios}, \texttt{@stomp/stompjs}, \texttt{sockjs-client}. \\
-\hline
-UI utilities & \texttt{lucide-react}, \texttt{sonner}, \texttt{react-select}, \texttt{react-day-picker}, \texttt{react-qr-code}. \\
-\hline
-Build chunk & \texttt{vendor-react}, \texttt{vendor-ui}, \texttt{vendor-network}, \texttt{vendor-utils}, \texttt{vendor-misc}. \\
-\hline
-Deploy & Docker hai giai đoạn: \texttt{node:20-alpine} build artifact, \texttt{nginx:alpine} phục vụ thư mục \texttt{dist}. \\
-\hline
-\end{tabularx}
-\caption{Cấu hình triển khai Frontend}
-\label{tab:fe_build_config}
-\end{table}
-
-File \texttt{vite.config.ts} cấu hình dev server tại cổng \texttt{3000}, alias
-\texttt{@} về thư mục gốc frontend và tách bundle theo nhóm thư viện. File
-\texttt{nginx-fe.conf} dùng \texttt{try\_files} để mọi route phía client được
-trả về \texttt{index.html}, phù hợp với SPA.
-
-Nhóm đã áp dụng \texttt{React.lazy} và \texttt{Suspense} cho các page ở cấp
-route. Cách này làm cho bundle ban đầu không phải tải toàn bộ màn hình công khai,
-độc giả, thủ thư và admin cùng lúc. Khi người dùng truy cập một route, module tương ứng
-mới được tải về trình duyệt.
-
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3.05cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (browser) {Người dùng mở SPA};
-    \node[box, fill=orange!10, right=0.75cm of browser] (core) {Tải core bundle\\React + Router + Context};
-    \node[box, fill=green!8, right=0.75cm of core] (route) {Khớp route\\public/user/librarian};
-    \node[box, fill=purple!8, below=0.9cm of route] (chunk) {Tải page chunk\\theo màn hình};
-    \node[box, fill=gray!12, left=0.75cm of chunk] (render) {Render layout\\và gọi API cần thiết};
-
-    \draw[arrow] (browser) -- (core);
-    \draw[arrow] (core) -- (route);
-    \draw[arrow] (route) -- (chunk);
-    \draw[arrow] (chunk) -- (render);
-\end{tikzpicture}
-\caption{Luồng tải màn hình bằng lazy loading}
-\label{fig:fe_lazy_loading_flow}
-\end{figure}
-
-
-\subsubsection{Định tuyến và phân quyền giao diện}
-
-Định tuyến được chia thành bốn vùng: công khai, độc giả, thủ thư và admin. Component
-\texttt{ProtectedRoute} đọc \texttt{userType} từ \texttt{AuthContext}; request
-chưa xác thực được chuyển về trang đăng nhập, còn request sai vai trò được chuyển
-về dashboard tương ứng.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.9cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.9cm, text width=3cm},
-    decision/.style={draw, diamond, aspect=2.1, align=center, inner sep=1pt, text width=2.7cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (url) {URL request};
-    \node[decision, fill=yellow!12, below=of url] (prefix) {Route prefix};
-    \node[box, fill=green!8, below left=1cm and 2.6cm of prefix] (public) {\texttt{/publicpage}\\Public layout};
-    \node[decision, fill=yellow!12, below=1cm of prefix] (auth) {Có token?};
-    \node[box, fill=red!8, right=2.7cm of auth] (login) {\texttt{/publicpage/login}};
-    \node[decision, fill=yellow!12, below=1cm of auth] (role) {Vai trò hợp lệ?};
-    \node[box, fill=green!8, below left=1cm and 2.1cm of role] (user) {\texttt{/userpage}\\Reader layout};
-    \node[box, fill=green!8, below=1cm of role] (lib) {\texttt{/librarianpage}\\Librarian layout};
-    \node[box, fill=green!8, below right=1cm and 2.1cm of role] (admin) {\texttt{/adminpage}\\Admin layout};
-    \node[box, fill=red!8, right=2.7cm of role] (redirect) {Redirect dashboard};
-
-    \draw[arrow] (url) -- (prefix);
-    \draw[arrow] (prefix) -- node[left]{public} (public);
-    \draw[arrow] (prefix) -- node[right]{protected} (auth);
-    \draw[arrow] (auth) -- node[above]{không} (login);
-    \draw[arrow] (auth) -- node[right]{có} (role);
-    \draw[arrow] (role) -- node[above]{không} (redirect);
-    \draw[arrow] (role) -- node[left]{student} (user);
-    \draw[arrow] (role) -- node[right]{librarian} (lib);
-    \draw[arrow] (role) -- node[right]{admin} (admin);
-\end{tikzpicture}
-\caption{Luồng xử lý route và phân quyền trên Frontend}
-\label{fig:fe_routing_flow}
-\end{figure}
-
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{2.8cm}|p{2.9cm}|X|X|}
-\hline
-\textbf{Vùng route} & \textbf{Layout} & \textbf{Vai trò} & \textbf{Màn hình/chức năng chính} \\
-\hline
-\texttt{/publicpage} & \texttt{Layout} &
-Khách chưa đăng nhập và người dùng xem dữ liệu công khai. &
-Trang chủ, tìm kiếm, chi tiết sách, danh mục, hướng dẫn, FAQ, liên hệ, đăng nhập, đăng ký, quên mật khẩu, OAuth2 callback. \\
-\hline
-\texttt{/userpage} & \texttt{ProtectedLayout} &
-Độc giả đã xác thực với role \texttt{student}. &
-Dashboard cá nhân, tìm kiếm trong phiên đăng nhập, sách đang mượn, phiếu đặt trước, phí phạt, wishlist, thông báo, hồ sơ, cài đặt. \\
-\hline
-\texttt{/librarianpage} & \texttt{LibrarianLayout} &
-Thủ thư đã xác thực với role \texttt{librarian}. &
-Dashboard vận hành, mượn--trả tại quầy, quản lý ấn phẩm, quản lý bản sao, yêu cầu, lịch sử giao dịch, cài đặt và xem trang công khai trong layout thủ thư. \\
-\hline
-\texttt{/adminpage} & \texttt{AdminLayout} &
-Quản trị viên đã xác thực với role \texttt{admin}. &
-Quản lý tài khoản thủ thư, tài khoản độc giả, khóa/mở khóa/xác minh tài khoản, chỉnh quy định mượn trả, xem nhật ký thao tác và cài đặt tài khoản admin. \\
-\hline
-\end{tabularx}
-\caption{Phân vùng giao diện theo vai trò}
-\label{tab:fe_route_roles}
-\end{table}
-
-
-\subsubsection{Admin console và kiểm soát vận hành}
-
-Vùng \texttt{/adminpage} là khu vực quản trị tập trung của hệ thống. Khác với
-các màn hình quản lý tĩnh, admin console được nối trực tiếp với
-backend và cơ sở dữ liệu: mọi thay đổi tài khoản, quy định mượn trả và nhật ký
-vận hành đều đi qua API có phân quyền. Nhờ đó admin có thể theo dõi hệ thống
-đang vận hành như thế nào, ai thực hiện thao tác, thao tác tác động đến đối
-tượng nào và kết quả ra sao.
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{4.5cm}|X|X|}
-\hline
-\textbf{Màn hình} & \textbf{API chính} & \textbf{Vai trò trong vận hành} \\
-\hline
-\texttt{/adminpage/librarians} &
-\texttt{/api/v1/admin/librarians}, \newline \texttt{/api/v1/admin/users/\{id\}/status}, \newline \texttt{/verify}. &
-Tạo tài khoản thủ thư với mã thủ thư, số điện thoại, địa chỉ và ảnh đại diện; khóa/mở khóa và xác minh hồ sơ thủ thư. \\
-\hline
-\texttt{/adminpage/users} &
-\texttt{/api/v1/admin/users}. &
-Tra cứu độc giả, xem trạng thái hồ sơ, khóa hoặc kích hoạt lại tài khoản khi cần kiểm soát truy cập. \\
-\hline
-\texttt{/adminpage/policies} &
-\texttt{/api/v1/circulation-policies/admin}. &
-Cấu hình quy định mượn trả từ DB, gồm hạn nhận sách, số ngày mượn, giới hạn sách/đặt trước và phí trễ hạn theo ngày. \\
-\hline
-\texttt{/adminpage/audit-logs} &
-\texttt{/api/v1/admin/audit-logs}. &
-Xem truy vết vận hành với bộ lọc, tìm kiếm, sắp xếp và nhãn tiếng Việt cho các hành động kỹ thuật/ nghiệp vụ. \\
-\hline
-\texttt{/adminpage/settings} &
-\texttt{/api/v1/users/my-profile}, \newline \texttt{/api/v1/users/change-password}, \newline \texttt{/api/v1/users/avatar}. &
-Cho phép admin tự cập nhật hồ sơ, ảnh đại diện và đổi mật khẩu giống các vai trò khác. \\
-\hline
-\end{tabularx}
-\caption{Các màn hình chính trong Admin Console}
-\label{tab:fe_admin_pages}
-\end{table}
-
-Các cơ chế xử lý giao diện và nghiệp vụ trên Admin Console được thiết kế tập trung vào tính an toàn, tối ưu không gian hiển thị và khả năng truy vết hệ thống
-
-\subsubsection{State management dùng Context}
-
-State dùng chung được gom vào các Context ở tầng \texttt{App}. Các page chỉ gọi
-hook tương ứng, do đó logic xác thực, ngôn ngữ, theme, upload và thông báo không
-bị lặp trong từng màn hình.
-
-\begin{table}[H]
-\centering
-\small % Giúp text trong bảng gọn gàng hơn
-\renewcommand{\arraystretch}{1.4} % Tăng khoảng cách dòng cho thoáng chữ
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.5cm} X >{\raggedright\arraybackslash}X}
-\toprule
-\textbf{Context} & \textbf{State / API cung cấp} & \textbf{Nguồn đồng bộ / Hạ tầng} \\
-\midrule
-\texttt{AuthContext} & \texttt{userType}, \texttt{login()}, \texttt{socialLogin()}, \texttt{logout()} & JWT, \texttt{localStorage} \\
-
-\texttt{LanguageContext} & \texttt{language}, hàm dịch \texttt{t(key)}, switch \texttt{vi}/\texttt{en} & Key \texttt{smartlibrary.language} \\
-
-\texttt{ThemeContext} & \texttt{themeMode}, \texttt{resolvedTheme}, \texttt{setThemeMode()} & \texttt{prefers-color-scheme}, \texttt{localStorage} \\
-
-\texttt{NotificationContext} & \texttt{notifications}, \texttt{unreadCount}, các hàm đánh dấu đã đọc & REST API, WebSocket (STOMP/SockJS) \\
-
-\texttt{UploadContext} & Danh sách file, tiến độ (\%), trạng thái, hàm hủy/thử lại & Browser upload events \\
-
-\texttt{AppDialogContext} & \texttt{confirm()} và \texttt{alert()} dạng Promise-based & React Portal \\
-\bottomrule
-\end{tabularx}
-\caption{Các Context được hiện thực trong Frontend}
-\label{tab:fe_contexts}
-\end{table}
-
-Trong các Context trên, \texttt{UploadContext} được dùng cho tác vụ upload tài
-liệu PDF của thủ thư. Context này lưu danh sách file đang upload, tiến độ, trạng
-thái và callback hủy/thử lại. Khi còn upload đang chạy, frontend đăng ký
-\texttt{beforeunload} để cảnh báo người dùng trước khi đóng tab.
-
-
-\subsubsection{Cá nhân hóa giao diện: theme và đa ngôn ngữ}
-
-Hệ thống hiện thực hai cơ chế cá nhân hóa ở cấp ứng dụng, bao gồm:
-
-\begin{description}
-    \item[Cơ chế thay đổi giao diện (Theme):] \texttt{ThemeContext} chịu trách nhiệm lưu trữ các trạng thái cấu hình \texttt{light}, \texttt{dark} hoặc \texttt{system}. Khi người dùng lựa chọn cấu hình \texttt{system}, giao diện hệ thống sẽ tự động đồng bộ theo thuộc tính \texttt{prefers-color-scheme} của hệ điều hành.
-    \item[Cơ chế đa ngôn ngữ (i18n):] \texttt{LanguageContext} thực hiện lưu trữ cấu hình ngôn ngữ (Việt -- Anh) trong \texttt{localStorage}. Trạng thái này được dùng để cập nhật thuộc tính \texttt{document.documentElement.lang} của DOM và cung cấp hàm dịch \texttt{t(key)} đến toàn bộ các component trong hệ thống.
-\end{description}
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{3.2cm}|X|X|}
-\hline
-\textbf{Cơ chế} & \textbf{Hiện thực} & \textbf{Giá trị trong hệ thống} \\
-\hline
-Light/dark/system theme & \texttt{ThemeContext}, \texttt{localStorage}, class \texttt{dark} trên thẻ \texttt{html}. & Giao diện được đồng bộ trên toàn SPA, không cần mỗi page tự lưu trạng thái theme. \\
-\hline
-Đa ngôn ngữ Việt--Anh & \texttt{LanguageContext}, dictionary key-value, header \texttt{Accept-Language} và metadata translations từ backend. & Một lựa chọn ngôn ngữ được dùng thống nhất ở UI, lỗi API, notification và dữ liệu biên mục có bản dịch/alias. \\
-\hline
-Định dạng dữ liệu theo locale & Các page đọc \texttt{language} để định dạng ngày, label, trạng thái và thông báo. & Người dùng đọc cùng nghiệp vụ bằng ngôn ngữ đã chọn, không cần tách hai bộ màn hình. \\
-\hline
-\end{tabularx}
-\caption{Cơ chế cá nhân hóa giao diện}
-\label{tab:fe_personalization}
-\end{table}
+Cụ thể, lớp \texttt{api} được đóng gói độc lập để xử lý giao tiếp HTTP và refresh token tự động. Dữ liệu sau đó được đẩy lên lớp \texttt{contexts} để quản lý trạng thái tập trung (Global State), và cuối cùng mới được phân phối xuống các trang (\texttt{pages}) và thành phần giao diện (\texttt{components}) để hiển thị cho người dùng.
 
 \begin{figure}[H]
     \centering
-    {
-        \includegraphics[width=0.82\textwidth]{figures/ch06/frontend/light_theme.png}
-    }
-    \caption{Giao diện sáng và tiếng Việt}
-    \label{fig:fe_light_theme}
+    \begin{subfigure}[b]{0.65\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/frontend_architecture.png}
+        \caption{Sơ đồ kiến trúc và luồng dữ liệu Frontend}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/frontend_folder_tree.png}
+        \caption{Cấu trúc thư mục \texttt{src} thực tế}
+    \end{subfigure}
+    \caption{Kiến trúc tổng thể và cách thức tổ chức mã nguồn Frontend}
+    \label{fig:fe_architecture_and_structure}
+\end{figure}
+
+Dựa trên nền tảng kiến trúc vững chắc này, hệ thống đã triển khai thành công các luồng nghiệp vụ phức tạp và phân định rạch ròi quyền truy cập thông qua cơ chế Route Protection. Bảng \ref{tab:fe_pages_implemented} liệt kê chi tiết danh sách các màn hình chức năng đã được hiện thực và phân quyền cụ thể cho từng nhóm người dùng (Bạn đọc, Thủ thư, Quản trị viên).
+
+\begin{longtable}{|p{2.9cm}|p{4.2cm}|p{7.2cm}|}
+\caption{Các màn hình Frontend đã hiện thực theo nhóm người dùng}
+\label{tab:fe_pages_implemented}\\
+\hline
+\textbf{Nhóm trang} & \textbf{Màn hình} & \textbf{Chức năng đã hiện thực} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Nhóm trang} & \textbf{Màn hình} & \textbf{Chức năng đã hiện thực} \\
+\hline
+\endhead
+\texttt{/publicpage} & Trang chủ &
+Hiển thị sách mới, sách được mượn nhiều, sách được đánh giá cao, thống kê công
+khai và ô tìm kiếm nhanh. \\
+\hline
+\texttt{/publicpage} & Tìm kiếm sách &
+Tìm kiếm theo từ khóa, lọc danh mục/tag/ngôn ngữ/năm xuất bản/trạng thái bản
+sao, sắp xếp, phân trang và chuyển sang semantic search khi cần. \\
+\hline
+\texttt{/publicpage} & Chi tiết sách &
+Hiển thị metadata, bản sao, trạng thái khả dụng, summary/tag AI, rating, review,
+sách tương tự, nút mượn hoặc đặt trước. \\
+\hline
+\texttt{/publicpage} & Auth pages &
+Đăng ký, đăng nhập, Google OAuth callback, xác thực email, quên mật khẩu và đặt
+lại mật khẩu. \\
+\hline
+\texttt{/publicpage} & Liên hệ, hướng dẫn, FAQ &
+Hiển thị thông tin thư viện, form liên hệ, iframe Google Maps lazy loading và
+nội dung hướng dẫn sử dụng. \\
+\hline
+\texttt{/userpage} & Dashboard bạn đọc &
+Tổng hợp sách đang mượn, đặt trước, phí phạt, thông báo, gợi ý sách và thao tác
+nhanh. \\
+\hline
+\texttt{/userpage} & Sách đang mượn/lịch sử &
+Theo dõi giao dịch mượn, hạn trả, trạng thái quá hạn, lịch sử mượn trả và chi
+tiết giao dịch. \\
+\hline
+\texttt{/userpage} & Đặt trước &
+Xem danh sách phiếu đặt trước, vị trí hàng chờ, trạng thái sẵn sàng nhận sách,
+deadline và hủy đặt trước. \\
+\hline
+\texttt{/userpage} & Phí phạt &
+Xem phí quá hạn/hư/mất, trạng thái thanh toán, tạo QR PayOS và cập nhật kết quả
+thanh toán. \\
+\hline
+\texttt{/userpage} & Wishlist, rating, hồ sơ &
+Lưu sách yêu thích, đánh giá sách sau khi mượn, phản hồi review, cập nhật hồ sơ,
+avatar, mật khẩu, ngôn ngữ và theme. \\
+\hline
+\texttt{/userpage} & Thông báo &
+Nhận thông báo realtime, đánh dấu đã đọc, xem thông báo về mượn--trả, đặt trước,
+phí phạt và phản hồi review. \\
+\hline
+\texttt{/librarianpage} & Dashboard thủ thư &
+Thống kê vận hành, sách mượn/trả, yêu cầu chờ xử lý, phí phạt, cảnh báo quá hạn
+và các thao tác nhanh. \\
+\hline
+\texttt{/librarianpage} & Quản lý ấn phẩm &
+Tạo/sửa/xóa ấn phẩm, tác giả, nhà xuất bản, danh mục, tag, ảnh bìa, ISBN auto
+fill, upload PDF và theo dõi trạng thái xử lý AI. \\
+\hline
+\texttt{/librarianpage} & Quản lý bản sao &
+Tạo bản sao vật lý, barcode, vị trí kệ, chi nhánh, trạng thái khả dụng, hư/mất
+và lịch sử lưu thông. \\
+\hline
+\texttt{/librarianpage} & Mượn--trả tại quầy &
+Tra cứu bạn đọc, quét/nhập barcode, cho mượn trực tiếp, xác nhận nhận sách, trả
+sách, ghi chú giao dịch và xử lý sách hư/mất. \\
+\hline
+\texttt{/librarianpage} & Yêu cầu và đặt trước &
+Xem yêu cầu mượn, duyệt/từ chối, quản lý hàng chờ đặt trước, xác nhận nhận sách
+và gửi thông báo cho bạn đọc. \\
+\hline
+\texttt{/librarianpage} & Phí phạt và thanh toán &
+Tính phí, thu tiền mặt, tạo QR PayOS, polling trạng thái chuyển khoản và cập
+nhật trạng thái fine. \\
+\hline
+\texttt{/adminpage} & Quản lý tài khoản &
+Quản lý tài khoản độc giả/thủ thư, tạo thủ thư, khóa/mở khóa, xác minh tài
+khoản và cập nhật trạng thái người dùng. \\
+\hline
+\texttt{/adminpage} & Chính sách và audit &
+Cấu hình quy định mượn trả, xem nhật ký thao tác, lọc audit log và theo dõi thay
+đổi vận hành hệ thống. \\
+\hline
+\end{longtable}
+
+% ==========================================
+% 1. PHÂN HỆ BẠN ĐỌC (READER FLOW)
+% ==========================================
+Để mang lại trải nghiệm liền mạch cho bạn đọc, phân hệ Frontend được thiết kế tối ưu từ khâu khám phá tài liệu đến các thao tác tương tác chi tiết. Quá trình này bắt đầu tại màn hình Dashboard và công cụ tìm kiếm ngữ nghĩa, nơi người dùng có thể tra cứu ấn phẩm bằng ngôn ngữ tự nhiên thay vì chỉ dựa vào từ khóa rập khuôn.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/semantic_search_page.png}
+        \caption{Tìm kiếm ngữ nghĩa và lọc sách}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/reader_dashboard.png}
+        \caption{Dashboard bạn đọc}
+    \end{subfigure}
+    \caption{Giao diện tổng quan và chức năng tìm kiếm thông minh dành cho bạn đọc}
+    \label{fig:fe_reader_discovery}
+\end{figure}
+
+Sau khi tìm được tài liệu mong muốn, bạn đọc có thể xem thông tin chi tiết với các siêu dữ liệu (metadata) được AI tự động trích xuất. Đồng thời, hệ thống cung cấp đầy đủ các tính năng tương tác như đánh giá, phản hồi và thanh toán trực tuyến tự động thông qua mã QR PayOS.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/book_detail.png}
+        \caption{Chi tiết sách và siêu dữ liệu (metadata) AI}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/book_rating_review.png}
+        \caption{Đánh giá và phản hồi}
+    \end{subfigure}
+    \caption{Trải nghiệm xem chi tiết và tương tác với ấn phẩm}
+    \label{fig:fe_reader_interaction}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    {
-        \includegraphics[width=0.82\textwidth]{figures/ch06/frontend/dark_theme.png}
-    }
-    \caption{Giao diện tối và tiếng Anh}
-    \label{fig:fe_dark_theme}
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/payment/init_qr.png}
+        \caption{Khởi tạo thanh toán}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/payment/create_qr.png}
+        \caption{Hiển thị mã QR PayOS}
+    \end{subfigure}
+    \caption{Quy trình tích hợp thanh toán tự động}
+    \label{fig:fe_payment_integration}
 \end{figure}
-\subsubsection{Lớp giao tiếp API}
 
-Lớp API được tập trung qua \texttt{api/axiosInstance.ts}. Request interceptor gắn
-\texttt{Authorization} và \texttt{Accept-Language}. Response interceptor unwrap
-payload thành công, xử lý lỗi nghiệp vụ và tự động refresh token khi backend trả
-về mã \texttt{1403}.
+% ==========================================
+% 2. PHÂN HỆ THỦ THƯ (LIBRARIAN FLOW)
+% ==========================================
+Đối với nghiệp vụ quản trị, hệ thống tập trung giải quyết bài toán giảm tải thao tác thủ công cho thủ thư bằng cách tự động hóa luồng số hóa tài liệu. Các tính năng nổi bật bao gồm tự động điền thông tin từ mã ISBN và giám sát tiến trình AI xử lý tài liệu vừa tải lên.
 
 \begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.75cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.9cm, text width=3.1cm},
-    decision/.style={draw, diamond, aspect=2, align=center, inner sep=1pt, text width=2.8cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (component) {Page component};
-    \node[box, fill=blue!8, below=of component] (service) {Domain service\\\texttt{api/*Service.ts}};
-    \node[box, fill=orange!10, below=of service] (request) {Axios request\\Gắn token + ngôn ngữ};
-    \node[box, fill=purple!8, below=of request] (backend) {Backend API};
-    \node[decision, fill=yellow!12, below=of backend] (status) {Response};
-    \node[box, fill=green!8, below left=0.9cm and 1.4cm of status] (success) {Unwrap data\\Cập nhật state};
-    \node[decision, fill=yellow!12, below right=0.9cm and 1.4cm of status] (expired) {Token hết hạn?};
-    \node[box, fill=orange!10, below=0.9cm of expired] (refresh) {Refresh token\\Phát lại queue};
-    \node[box, fill=red!8, right=1.2cm of refresh] (logout) {Xóa token\\Về login};
-
-    \draw[arrow] (component) -- (service);
-    \draw[arrow] (service) -- (request);
-    \draw[arrow] (request) -- (backend);
-    \draw[arrow] (backend) -- (status);
-    \draw[arrow] (status) -- node[left]{2xx} (success);
-    \draw[arrow] (status) -- node[right]{lỗi} (expired);
-    \draw[arrow] (expired) -- node[right]{có} (refresh);
-    \draw[arrow] (expired) -- node[above]{không} (logout);
-\end{tikzpicture}
-\caption{Pipeline xử lý request và response bằng Axios interceptor}
-\label{fig:fe_axios_pipeline}
+    \centering
+     \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/isbn_auto_fill.png}
+        \caption{Tự động trích xuất metadata từ ISBN}
+    \end{subfigure}
+    \hfill
+        \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/upload_book.png}
+        \caption{Tải lên tài liệu và giám sát tiến trình AI}
+    \end{subfigure}
+    \caption{Nghiệp vụ nhập liệu và số hóa tài liệu thông minh}
+    \label{fig:fe_librarian_cataloging}
 \end{figure}
 
+Bên cạnh khâu nhập liệu, công tác giám sát và quản lý danh mục ấn phẩm cũng được trực quan hóa, kết hợp cùng hệ thống thông báo thời gian thực (real-time notification) để thủ thư nắm bắt và xử lý kịp thời các sự kiện phát sinh.
 
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{|p{4cm}|X|}
-\hline
-\textbf{Service} & \textbf{Nghiệp vụ được đóng gói} \\
-\hline
-\texttt{publicationsService} & Tìm kiếm, chi tiết sách, bản sao, đánh giá, upload bìa, upload tài liệu, sách tương tự. \\
-\hline
-\texttt{transactionsService} & Mượn sách, mượn trực tiếp, xác nhận nhận sách, tra cứu giao dịch, trả sách, báo sự cố. \\
-\hline
-\texttt{reservationService} & Tạo đặt trước, hủy đặt trước, tra cứu phiếu đặt trước, xác nhận nhận sách đặt trước. \\
-\hline
-\texttt{fineService} & Tra cứu phí phạt, thanh toán tiền mặt, tạo link PayOS, đồng bộ trạng thái thanh toán. \\
-\hline
-\texttt{recommendationService}, \texttt{semanticSearchService} & Gợi ý sách cá nhân hóa và tìm kiếm ngữ nghĩa qua AI service. \\
-\hline
-\end{tabularx}
-\caption{Service layer theo domain nghiệp vụ}
-\label{tab:fe_api_services}
-\end{table}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/publication_management.png}
+        \caption{Quản lý danh mục ấn phẩm}
+    \end{subfigure}
+    \hfill
+        \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/realtime_notification.png}
+        \caption{Hệ thống thông báo thời gian thực}
+    \end{subfigure}
+    \caption{Nghiệp vụ quản lý vận hành và giám sát hệ thống của thủ thư}
+    \label{fig:fe_librarian_management}
+\end{figure}
 
-Điểm quan trọng nhất ở lớp API là cơ chế refresh token có hàng đợi request. Khi
-nhiều request đồng thời nhận lỗi token hết hạn, frontend chỉ gửi một request
-refresh. Các request còn lại được đưa vào hàng đợi và được phát lại sau khi token
-mới được cấp. Đoạn mã dưới đây giữ lại phần lõi của cơ chế này.
+% ==========================================
+% 3. GIAO TIẾP VÀ CẤU HÌNH HỆ THỐNG
+% ==========================================
+Cuối cùng, để đảm bảo tính kết nối và đáp ứng đa dạng nhu cầu sử dụng, hệ thống cung cấp luồng giao tiếp hỗ trợ trực tuyến giữa các nhóm người dùng, đi kèm các tùy chọn cá nhân hóa sâu về giao diện (Light/Dark mode) và ngôn ngữ (Việt - Anh).
 
-\begin{lstlisting}[caption={Cơ chế refresh token một lần cho nhiều request}, label={lst:fe_refresh_queue}]
-if (isRefreshing) {
-  return new Promise((resolve, reject) => {
-    failedQueue.push({ resolve, reject });
-  }).then((token) => {
-    originalRequest.headers.Authorization = `Bearer ${token}`;
-    return axiosInstance(originalRequest);
-  });
-}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/contact_and_support_user.png}
+        \caption{Gửi yêu cầu hỗ trợ (Bạn đọc)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/contact_and_support_librarian.png}
+        \caption{Tiếp nhận và phản hồi (Thủ thư)}
+    \end{subfigure}
+    \caption{Luồng giao tiếp và hỗ trợ trực tuyến giữa các nhóm người dùng}
+    \label{fig:fe_cross_support}
+\end{figure}
 
-originalRequest._retry = true;
-isRefreshing = true;
-const res = await refreshAccessToken(refreshToken);
-processQueue(null, res.data.accessToken);
-return axiosInstance(originalRequest);
-\end{lstlisting}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/light_theme_and_vietnamese.png}
+        \caption{Giao diện sáng (Light) - Tiếng Việt}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/frontend/dark_theme_and_english.png}
+        \caption{Giao diện tối (Dark) - Tiếng Anh}
+    \end{subfigure}
+    \caption{Tính năng cá nhân hóa giao diện và đa ngôn ngữ (i18n)}
+    \label{fig:fe_system_personalization}
+\end{figure}
 
-
-\subsubsection{Hiện thực nhóm trang công khai}
-
-Nhóm trang công khai xử lý các tác vụ không yêu cầu phiên đăng nhập. Người dùng
-có thể tìm sách, xem metadata, xem tình trạng bản sao và đọc thông tin hướng dẫn
-trước khi đăng nhập. Khi thao tác mượn/đặt trước được kích hoạt từ trang chi tiết
-sách, frontend chuyển luồng sang yêu cầu xác thực nếu chưa có token.
+% --- ĐOẠN CHUYỂN Ý 1: TỪ GIAO DIỆN SANG KỸ THUẬT ---
+Đằng sau giao diện trực quan và các trải nghiệm cá nhân hóa linh hoạt, phân hệ Frontend được xây dựng dựa trên một kiến trúc kỹ thuật vững chắc nhằm đảm bảo tính mở rộng và hiệu năng cao. Bảng \ref{tab:fe_technical_summary} tổng hợp các giải pháp kỹ thuật trọng tâm đã được áp dụng để giải quyết các bài toán cốt lõi: từ quản lý trạng thái tập trung, tối ưu giao tiếp API, đến xử lý luồng sự kiện thời gian thực (real-time) và tích hợp an toàn các dịch vụ bên thứ ba.
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{|p{3.2cm}|X|X|}
+\begin{tabularx}{\textwidth}{|p{3.4cm}|X|}
 \hline
-\textbf{Màn hình} & \textbf{Mục đích} & \textbf{Chức năng chính} \\
+\textbf{Hạng mục Frontend} & \textbf{Nội dung đã hiện thực} \\
 \hline
-\texttt{HomePage} & Cổng vào hệ thống và điều hướng tra cứu. & Hiển thị sách mới, sách mượn nhiều, thống kê, danh mục và ô tìm kiếm nhanh. \\
+Routing và phân quyền &
+\texttt{HashRouter}, lazy loading theo page, \texttt{ProtectedRoute}, redirect
+theo role \texttt{student}, \texttt{librarian}, \texttt{admin}. \\
 \hline
-\texttt{SearchPage} & Tra cứu ấn phẩm ở chế độ công khai. & Tìm kiếm theo từ khóa, tag, danh mục/năm/ngôn ngữ/chi nhánh; kết quả semantic search được dùng như lớp bổ sung sau kết quả lexical. \\
+State dùng chung &
+\texttt{AuthContext}, \texttt{LanguageContext}, \texttt{ThemeContext},
+\texttt{NotificationContext}, \texttt{UploadContext}, \texttt{AppDialogContext}. \\
 \hline
-\texttt{BookDetailPage} & Xem chi tiết một ấn phẩm. & Hiển thị metadata, tag màu sáng có thể bấm để tìm kiếm, danh mục, bản sao, rating, trích dẫn, sách tương tự, wishlist và modal mượn/đặt trước. \\
+Giao tiếp API &
+Axios instance, gắn JWT và \texttt{Accept-Language}, unwrap response, xử lý lỗi
+nghiệp vụ, refresh token bằng queue để tránh gọi refresh nhiều lần. \\
 \hline
-\texttt{Login/Register} & Tạo và khôi phục phiên đăng nhập. & Đăng nhập email/mật khẩu, đăng ký, xác thực email, quên mật khẩu, Google OAuth2 và onboarding hồ sơ. \\
+Realtime và notification &
+STOMP/SockJS, unread count, toast realtime, đánh dấu đã đọc và đồng bộ danh sách
+thông báo. \\
 \hline
-\texttt{ContactPage} & Cung cấp kênh liên hệ và vị trí thư viện. & Form liên hệ, thông tin địa chỉ/điện thoại/email, liên kết gọi nhanh và Google Maps nhúng bằng iframe. \\
+Upload và tài liệu &
+Upload bìa/PDF bằng presigned URL, hiển thị progress, cảnh báo khi đóng tab lúc
+upload đang chạy, gửi yêu cầu AI xử lý tài liệu. \\
+\hline
+Thanh toán &
+Khởi tạo thanh toán PayOS, hiển thị QR, polling trạng thái, cập nhật UI cho thủ
+thư và bạn đọc sau khi thanh toán. \\
+\hline
+Cá nhân hóa &
+Light/dark/system theme, song ngữ Việt--Anh, lưu cấu hình vào
+\texttt{localStorage}, cập nhật \texttt{document.lang}. \\
 \hline
 \end{tabularx}
-\caption{Chức năng của nhóm trang công khai}
-\label{tab:fe_public_role_pages}
+\caption{Các hạng mục kỹ thuật Frontend}
+\label{tab:fe_technical_summary}
 \end{table}
 
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/search_page.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/frontend/search_page.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh trang tìm kiếm công khai}}
-    }
-    \caption{Giao diện tìm kiếm sách ở nhóm trang công khai}
-    \label{fig:fe_public_search}
-\end{figure}
-
-Trang tìm kiếm được hiện thực theo hướng hybrid nhưng ưu tiên kết quả có bằng
-chứng trực tiếp từ dữ liệu biên mục. Khi người dùng nhập từ khóa, frontend gọi
-API tìm kiếm thường để lấy kết quả lexical trước; đồng thời có thể gọi semantic
-search để lấy thêm các ấn phẩm liên quan theo vector. Sau khi lấy metadata chi
-tiết cho kết quả semantic, frontend loại trùng và nối các kết quả này phía sau
-danh sách lexical. Cách này bảo đảm truy vấn chính xác theo nhan đề, tác giả,
-tag hoặc danh mục không bị đẩy xuống dưới bởi kết quả vector gần nghĩa. Các
-filter được đồng bộ vào URL query string để người dùng có thể reload hoặc chia
-sẻ đường dẫn mà vẫn giữ được trạng thái lọc.
+% --- ĐOẠN CHUYỂN Ý 2: TỪ KỸ THUẬT SANG GIÁ TRỊ THỰC TIỄN ---
+Tất cả các quyết định về mặt kiến trúc và kỹ thuật nêu trên đều hướng tới một mục tiêu duy nhất: chuyển hóa công nghệ thành giá trị sử dụng. Bảng \ref{tab:fe_value_highlights} đúc kết lại những điểm sáng nổi bật của phân hệ, minh chứng cho việc ứng dụng công nghệ không chỉ dừng lại ở mặt hiển thị mà đã thực sự giải quyết triệt để các bài toán vận hành, chuyển đổi toàn diện trải nghiệm của bạn đọc và thủ thư.
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{|p{3.2cm}|X|X|}
+\begin{tabularx}{\textwidth}{|p{3.4cm}|X|p{3.4cm}|}
 \hline
-\textbf{Nhóm filter} & \textbf{State frontend} & \textbf{Cách xử lý} \\
+\textbf{Giá trị hiện thực} & \textbf{Cách hệ thống đã làm} & \textbf{Tác động với người dùng} \\
 \hline
-Từ khóa & \texttt{inputValue}, \texttt{activeKeyword}. & Gửi \texttt{keyword} vào API tìm kiếm thường; nếu có semantic search thì dùng cùng nội dung làm \texttt{queryText} và chỉ bổ sung kết quả chưa trùng. \\
+Tìm kiếm đa hướng &
+Kết hợp keyword search, bộ lọc catalog, tag/category alias và semantic search. &
+Bạn đọc không cần nhớ chính xác tên sách vẫn có thể tìm tài liệu phù hợp. \\
 \hline
-Danh mục & \texttt{categoryIds}. & Lưu nhiều \texttt{categoryIds} trong URL; backend lọc theo quan hệ \texttt{publication\_categories}, semantic search lọc lại sau khi lấy metadata. \\
+Vận hành tại quầy &
+Màn hình thủ thư hỗ trợ mượn trực tiếp, xác nhận nhận sách, trả sách, ghi chú và xử lý phí. &
+Nghiệp vụ mượn--trả không còn chỉ nằm ở phần demo giao diện. \\
 \hline
-Tình trạng bản sao & \texttt{available}. & Chỉ giữ ấn phẩm còn bản sao khả dụng. \\
+Tài liệu số &
+Upload bìa/PDF, progress upload, presigned URL và kích hoạt AI xử lý nền. &
+Thủ thư có thể đưa tài liệu mới vào hệ thống và theo dõi kết quả xử lý. \\
 \hline
-Năm, ngôn ngữ, cơ sở & \texttt{yearFrom}, \texttt{yearTo}, \texttt{language}, \texttt{branch}. & Gửi vào API search; với semantic search, áp dụng filter cục bộ trên danh sách kết quả. \\
-\hline
-Sắp xếp & \texttt{sortBy}. & Với chế độ liên quan, backend ưu tiên nhan đề/phụ đề, exact tag, partial tag rồi mới đến tiêu chí phụ như năm xuất bản. \\
-\hline
-\end{tabularx}
-\caption{Bộ lọc và sắp xếp trên trang tìm kiếm}
-\label{tab:fe_search_filters}
-\end{table}
-
-
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{|p{3.2cm}|X|X|}
-\hline
-\textbf{Màn hình} & \textbf{State chính} & \textbf{API sử dụng} \\
-\hline
-\texttt{HomePage} &
-\texttt{searchInput}, sách mới, sách mượn nhiều, gợi ý, danh mục, thống kê. &
-\texttt{getNewestPublications}, \texttt{getMostBorrowedPublications}, \texttt{getRecommendations}. \\
-\hline
-\texttt{SearchPage} &
-Từ khóa, danh mục, năm, ngôn ngữ, chi nhánh, còn bản sao, sắp xếp, trang, chế độ hiển thị. &
-\texttt{searchPublications}, \texttt{semanticSearch}, \texttt{getPublicationById}. \\
-\hline
-\texttt{BookDetailPage} &
-Metadata, tag, danh mục, bản sao, đánh giá, tóm tắt rating, wishlist, trích dẫn, modal mượn/đặt trước, sách tương tự. &
-\texttt{getPublicationById}, \texttt{getPublicationItems}, \texttt{borrow}, \texttt{createReservation}, \texttt{getSimilarPublications}. \\
+Phản hồi tức thời &
+Toast, notification realtime, unread count và đồng bộ trạng thái thanh toán/đặt trước. &
+Người dùng biết ngay khi có thay đổi quan trọng thay vì phải tải lại trang. \\
 \hline
 \end{tabularx}
-\caption{State và API của nhóm trang công khai}
-\label{tab:fe_public_pages}
+\caption{Các điểm giá trị nổi bật ở Frontend}
+\label{tab:fe_value_highlights}
 \end{table}
-
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/book_detail.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/frontend/book_detail.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh trang chi tiết sách}}
-    }
-    \caption{Giao diện chi tiết sách}
-    \label{fig:fe_book_detail}
-\end{figure}
-
-Luồng mượn hoặc đặt trước từ trang chi tiết sách như sau:
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.8cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3cm},
-    decision/.style={draw, diamond, aspect=2.2, align=center, inner sep=1pt, text width=2.8cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (detail) {Chi tiết sách};
-    \node[decision, fill=yellow!12, below=of detail] (available) {Có bản khả dụng?};
-    \node[box, fill=green!8, below left=0.9cm and 1.3cm of available] (borrow) {\texttt{borrow(itemId)}\\Tạo phiếu mượn};
-    \node[box, fill=orange!10, below right=0.9cm and 1.3cm of available] (reserve) {\texttt{createReservation}\\Xếp hàng đặt trước};
-    \node[box, fill=purple!8, below=1cm of borrow] (qr) {Hiển thị phiếu / QR};
-    \node[box, fill=purple!8, below=1cm of reserve] (queue) {Hiển thị trạng thái hàng chờ};
-
-    \draw[arrow] (detail) -- (available);
-    \draw[arrow] (available) -- node[left]{có} (borrow);
-    \draw[arrow] (available) -- node[right]{không} (reserve);
-    \draw[arrow] (borrow) -- (qr);
-    \draw[arrow] (reserve) -- (queue);
-\end{tikzpicture}
-\caption{Luồng mượn hoặc đặt trước từ trang chi tiết sách}
-\label{fig:fe_borrow_reserve_flow}
-\end{figure}
-
-Trên trang liên hệ, Google Maps được nhúng bằng \texttt{iframe} với
-\texttt{loading="lazy"}. Nhóm chọn cách nhúng này vì không cần tích hợp SDK
-phức tạp, vẫn hiển thị được vị trí thư viện và không làm tăng đáng kể logic
-frontend.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/googlemap.png}{
-        \includegraphics[width=0.86\textwidth]{figures/ch06/frontend/googlemap.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.86\textwidth}{\centering Placeholder: thêm ảnh trang Contact có Google Maps tại \texttt{figures/ch06/frontend/googlemap.png}}}
-    }
-    \caption{Trang liên hệ tích hợp Google Maps}
-    \label{fig:fe_contact_map}
-\end{figure}
-
-
-\subsubsection{Hiện thực đánh giá và phản hồi sách}
-
-Chức năng đánh giá được đặt trong \texttt{BookDetailPage}. Frontend hiển thị
-tóm tắt rating, phân bố số sao, danh sách review có phân trang, filter theo số
-sao và sắp xếp theo mới nhất/cũ nhất/hữu ích. Độc giả có giao dịch mượn hợp lệ
-có thể gửi hoặc chỉnh sửa review; thủ thư có thể đọc phản hồi và trả lời review
-trong cùng màn hình.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/book_rating_review.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/frontend/book_rating_review.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh tab đánh giá sách, rating summary và danh sách review tại \texttt{figures/ch06/frontend/book_rating_review.png}}}
-    }
-    \caption{Giao diện đánh giá và phản hồi sách}
-    \label{fig:fe_book_rating_review}
-\end{figure}
-
-Các thao tác trên hệ thống đánh giá sách được phát triển đầy đủ, trực quan và chuyên nghiệp, giúp thao tác trực quan và thủ thư có thể tương tác với người dùng:
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{3.2cm}|X|X|}
-\hline
-\textbf{Thao tác} & \textbf{API/service} & \textbf{Xử lý tại Frontend} \\
-\hline
-Tải tóm tắt rating & \texttt{getPublicationRatingSummary}. & Hiển thị điểm trung bình, tổng số đánh giá và thanh phân bố 1--5 sao. \\
-\hline
-Tải danh sách review & \texttt{getPublicationRatings}. & Gửi \texttt{page}, \texttt{size}, \texttt{star}, \texttt{sort}; render phân trang và filter. \\
-\hline
-Gửi/chỉnh sửa review & \texttt{createPublicationRating}, \texttt{updatePublicationRating}. & Kiểm tra nội dung, gửi số sao và comment; sau khi thành công tải lại summary và danh sách. \\
-\hline
-Đánh dấu hữu ích & \texttt{toggleRatingHelpful}. & Cập nhật \texttt{helpfulCount} và trạng thái đã đánh dấu ngay trên item review. \\
-\hline
-Thủ thư trả lời & \texttt{replyToRating}. & Hiển thị phản hồi của thủ thư dưới review gốc. \\
-\hline
-\end{tabularx}
-\caption{Các thao tác trên hệ thống đánh giá sách}
-\label{tab:fe_rating_features}
-\end{table}
-
-
-Bộ lọc tìm kiếm nhóm đã hiện thực:
-
-
-\subsubsection{Hiện thực nhóm trang độc giả}
-
-Nhóm trang độc giả được thiết kế cho các nghiệp vụ cá nhân sau khi đăng nhập.
-Layout độc giả hiển thị sidebar, badge số lượng thông báo, trạng thái phí phạt
-và điều hướng đến các trang thường dùng. Các API được gọi theo dữ liệu của người
-dùng hiện tại, do đó frontend không truyền thủ công mã sinh viên trong những API
-dạng \texttt{my-*}.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/reader_dashboard.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/frontend/reader_dashboard.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh dashboard độc giả}}
-    }
-    \caption{Giao diện dashboard độc giả}
-    \label{fig:fe_reader_dashboard}
-\end{figure}
-
-
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{|p{3cm}|X|X|}
-\hline
-\textbf{Màn hình} & \textbf{Dữ liệu hiển thị} & \textbf{Xử lý chính} \\
-\hline
-\texttt{DashboardPage} & Hồ sơ, giao dịch, đặt trước, sách quá hạn/sắp đến hạn. & Tải song song \texttt{getMyTransactions} và \texttt{getMyReservations}. \\
-\hline
-\texttt{MyBooksPage} & Sách chờ lấy, đang mượn, đã trả, đã hủy. & Lọc theo tab, tìm kiếm cục bộ, sắp xếp, sinh QR nhận sách. \\
-\hline
-\texttt{ReservationsPage} & Danh sách đặt trước, trạng thái hàng chờ, hạn nhận. & Hủy đặt trước, hiển thị QR cho sách \texttt{READY\_FOR\_PICKUP}. \\
-\hline
-\texttt{FinesPage} & Phí phạt chưa thanh toán và đã thanh toán. & Phân tab theo \texttt{UNPAID}/\texttt{PAID}, tính tổng tiền. \\
-\hline
-\texttt{WishlistPage} & Danh sách ấn phẩm đã lưu. & Xóa một ấn phẩm hoặc xóa toàn bộ wishlist, cập nhật state cục bộ. \\
-\hline
-\texttt{ProfilePage} & Thông tin cá nhân và ảnh đại diện. & Cập nhật hồ sơ, upload avatar bằng \texttt{FormData}. \\
-\hline
-\end{tabularx}
-\caption{Các màn hình nghiệp vụ của độc giả}
-\label{tab:fe_reader_pages}
-\end{table}
-
-Ở luồng nhận sách, frontend sinh QR từ mã giao dịch hoặc mã đặt trước để thủ thư
-tra cứu nhanh tại quầy. QR không thay thế kiểm tra quyền ở backend; mã QR chỉ là
-dữ liệu đầu vào cho API lookup.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.75cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (layout) {\texttt{ProtectedLayout}};
-    \node[box, fill=orange!10, below left=0.9cm and 1.5cm of layout] (counts) {Badge count\\reservations, borrows, fines};
-    \node[box, fill=green!8, below=0.9cm of layout] (pages) {Reader pages};
-    \node[box, fill=purple!8, below right=0.9cm and 1.5cm of layout] (noti) {Unread notifications};
-    \node[box, fill=gray!12, below=1cm of pages, text width=4.2cm] (services) {\texttt{reservationService}\\\texttt{transactionsService}\\\texttt{fineService}\\\texttt{wishlistService}};
-
-    \draw[arrow] (layout) -- (counts);
-    \draw[arrow] (layout) -- (pages);
-    \draw[arrow] (layout) -- (noti);
-    \draw[arrow] (counts) -- (services);
-    \draw[arrow] (pages) -- (services);
-    \draw[arrow] (noti) -- (services);
-\end{tikzpicture}
-\caption{Dữ liệu điều hướng trong khu vực độc giả}
-\label{fig:fe_reader_layout_data}
-\end{figure}
-
-
-\subsubsection{Hiện thực nhóm trang thủ thư}
-
-Nhóm trang thủ thư tập trung vào các nghiệp vụ vận hành tại quầy và quản lý dữ
-liệu thư viện. Khác với trang độc giả, giao diện thủ thư ưu tiên tra cứu nhanh,
-thao tác theo barcode/MSSV, cập nhật trạng thái giao dịch và quản trị metadata
-ấn phẩm.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/borrow_book.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/frontend/borrow_book.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh màn hình quản lý mượn--trả của thủ thư}}
-    }
-    \caption{Giao diện tra cứu và xác nhận mượn sách của thủ thư}
-    \label{fig:fe_librarian_circulation}
-\end{figure}
-
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.75cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3.2cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-
-    \node[box, fill=blue!8] (circulation) {\texttt{Circulation}};
-
-    % Đã nới rộng khoảng cách ngang (4.2cm và 0.2cm) để các node không bị chồng lên nhau
-    \node[box, fill=green!8, below left=0.9cm and 4.2cm of circulation] (pickup) {Nhận sách\\lookup + confirm};
-    \node[box, fill=green!8, below left=0.9cm and 0.2cm of circulation] (direct) {Mượn trực tiếp\\studentId + barcode};
-
-    \node[box, fill=green!8, below right=0.9cm and 0.2cm of circulation] (return) {Trả sách / báo sự cố\\active transaction};
-    \node[box, fill=green!8, below right=0.9cm and 4.2cm of circulation] (fine) {Thanh toán phí phạt\\cash / PayOS};
-
-    % Đã thêm text width=4.2cm để nới rộng riêng ô này
-    \node[box, fill=orange!10, below=1.1cm of direct, text width=4.2cm] (tx) {\texttt{transactionsService}};
-    \node[box, fill=orange!10, below=1.1cm of fine] (fs) {\texttt{fineService}};
-
-    \draw[arrow] (circulation) -- (pickup);
-    \draw[arrow] (circulation) -- (direct);
-    \draw[arrow] (circulation) -- (return);
-    \draw[arrow] (circulation) -- (fine);
-
-    \draw[arrow] (pickup) -- (tx);
-    \draw[arrow] (direct) -- (tx);
-    \draw[arrow] (return) -- (tx);
-
-    \draw[arrow] (fine) -- (fs);
-
-\end{tikzpicture}
-\caption{Các luồng nghiệp vụ tại quầy thủ thư}
-\label{fig:fe_librarian_circulation_flow}
-\end{figure}
-
-\begin{table}[H]
-\centering
-\small % Đưa về small cho đồng bộ với các bảng hệ thống khác
-\renewcommand{\arraystretch}{1.5} % Tăng khoảng cách dòng cho thông thoáng
-\begin{tabularx}{\textwidth}{|p{3.8cm}|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
-\hline
-\textbf{Màn hình} & \textbf{Dữ liệu/State chính} & \textbf{API hoặc xử lý chính} \\
-\hline
-\texttt{Circulation} & Tab nhận sách, mượn trực tiếp, trả sách, phí phạt. & \texttt{lookup}, \texttt{borrowDirect}, \texttt{returnBook}, \texttt{reportIssue}, \texttt{payAllFinesByCash}, \texttt{syncPayOsFinePayment}. \\
-\hline
-\texttt{BookList} & Từ khóa, danh mục, năm, có bản sao, sắp xếp, trạng thái AI. & \texttt{getAllPublications}; hiển thị \texttt{AiStatusBadge}. \\
-\hline
-\texttt{BookDetails}/ \newline \texttt{CreatePublication} & Metadata, tác giả, tag, danh mục, bìa, tài liệu PDF. & Tạo/cập nhật ấn phẩm, upload cover, upload PDF qua presigned URL. \\
-\hline
-\texttt{CopyList} & Barcode, tình trạng, trạng thái, vị trí, phân trang. & Gọi \texttt{/items}; lọc, sắp xếp, xuất CSV trang hiện tại. \\
-\hline
-\texttt{TransactionList} & Lịch sử giao dịch, trạng thái, khoảng ngày, ghi chú. & \texttt{getAllTransactions}, cập nhật và xóa ghi chú giao dịch. \\
-\hline
-\end{tabularx}
-\caption{Các màn hình nghiệp vụ của thủ thư}
-\label{tab:fe_librarian_pages}
-\end{table}
-
-Luồng thu phí phạt được hiện thực với hai phương thức: tiền mặt và chuyển khoản
-qua PayOS. Khi chọn PayOS, frontend gọi API tạo payment link, hiển thị QR code
-từ trường \texttt{qrCode}, sau đó tự đồng bộ trạng thái theo chu kỳ 4 giây hoặc
-cho phép thủ thư bấm kiểm tra thủ công.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/payment/init_qr.png}{
-        \includegraphics[width=0.72\textwidth]{figures/ch06/payment/init_qr.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.72\textwidth}{\centering Placeholder: thêm ảnh khởi tạo QR thanh toán PayOS tại \texttt{figures/ch06/payment/init_qr.png}}}
-    }
-    \caption{Nhập MSSV và khoản tiền phạt sẽ hiện ra}
-    \label{fig:fe_khoitaoqr}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/payment/create_qr.png}{
-        \includegraphics[width=0.72\textwidth]{figures/ch06/payment/create_qr.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.72\textwidth}{\centering Placeholder: thêm ảnh modal QR thanh toán PayOS tại \texttt{figures/ch06/payment/create_qr.png}}}
-    }
-    \caption{Modal QR thanh toán phí phạt qua PayOS}
-    \label{fig:fe_payos_qr}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/payment/transfer.png}{
-        \includegraphics[height=0.65\textheight, keepaspectratio]{figures/ch06/payment/transfer.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.4\textwidth}{\centering Placeholder: thêm ảnh chuyển khoản PayOS tại \texttt{figures/ch06/payment/transfer.png}}}
-    }
-    \caption{Quét mã QR và thanh toán qua ứng dụng ngân hàng trên điện thoại}
-    \label{fig:fe_chuyenkhoan}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/payment/after_transfer.jpg}{
-        \includegraphics[width=0.5\textwidth]{figures/ch06/payment/after_transfer.jpg}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.5\textwidth}{\centering Placeholder: thêm ảnh sau khi chuyển khoản PayOS tại \texttt{figures/ch06/payment/after_transfer.jpg}}}
-    }
-    \caption{Sau khi chuyển khoản thành công, trạng thái QR sẽ cập nhật để thủ thư biết đã thanh toán}
-    \label{fig:fe_payos_qr_paid}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/publication_management.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/frontend/publication_management.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh màn hình quản lý ấn phẩm của thủ thư}}
-    }
-    \caption{Giao diện quản lý ấn phẩm của thủ thư}
-    \label{fig:fe_librarian_publications}
-\end{figure}
-
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.75cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3.2cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (file) {Chọn PDF};
-
-    % Nới rộng node URL và tăng khoảng cách
-    \node[box, fill=orange!10, right=1.2cm of file, text width=4cm] (url) {\texttt{getDocumentUploadUrl}\\Lấy presigned URL};
-
-    \node[box, fill=purple!8, right=1.2cm of url, text width=3.5cm] (s3) {\texttt{axios.put}\\Upload trực tiếp S3};
-
-    % Tăng khoảng cách chiều dọc
-    \node[box, fill=green!8, below=1.5cm of s3, text width=3.5cm] (save) {\texttt{saveDocumentUrl}\\Lưu \texttt{s3Key}};
-
-    % Nới rộng node panel
-    \node[box, fill=gray!12, left=1.2cm of save, text width=4cm] (panel) {\texttt{UploadContext}\\progress/cancel/retry};
-
-    % Nới rộng node AI để chứa đủ dòng text trạng thái dài
-    \node[box, fill=green!8, left=1.2cm of panel, text width=4.8cm] (ai) {Cập nhật trạng thái AI\\queued/running/success/failed};
-
-    \draw[arrow] (file) -- (url);
-    \draw[arrow] (url) -- (s3);
-    \draw[arrow] (s3) -- (save);
-    \draw[arrow] (s3) -- (panel);
-
-    % Nắn lại đường vẽ vòng xuống dưới để không đâm xuyên qua node panel
-    \draw[arrow] (save.south) -- ++(0,-0.5) -| (ai.south);
-\end{tikzpicture}
-\caption{Luồng upload tài liệu PDF của thủ thư}
-\label{fig:fe_pdf_upload_flow}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/isbn_auto_fill.png}{
-        \includegraphics[width=0.85\textwidth]{figures/ch06/frontend/isbn_auto_fill.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.85\textwidth}{\centering Placeholder: thêm ảnh tự động điền metadata ISBN tại \texttt{figures/ch06/frontend/isbn_auto_fill.png}}}
-    }
-    \caption{ISBN tự động điền các trường metadata}
-    \label{fig:isbn_auto_fill}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/upload_book.png}{
-        \includegraphics[width=0.85\textwidth]{figures/ch06/frontend/upload_book.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.85\textwidth}{\centering Placeholder: thêm ảnh UploadPanel khi upload PDF/cover tại \texttt{figures/ch06/frontend/upload_book.png}}}
-    }
-    \caption{UploadPanel hiển thị tiến độ upload tài liệu}
-    \label{fig:fe_upload_panel}
-\end{figure}
-
-\subsubsection{Thông báo thời gian thực}
-
-Thông báo thời gian thực được hiện thực bằng \texttt{NotificationContext}. Khi có
-\texttt{accessToken}, frontend tải danh sách thông báo ban đầu qua REST API và mở
-kết nối STOMP/SockJS đến endpoint WebSocket.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.8cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3.2cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (login) {Có \texttt{accessToken}};
-
-    % Nới rộng khoảng cách ngang hai nhánh ra 2.2cm
-    \node[box, fill=orange!10, below left=0.9cm and 2.2cm of login] (initial) {\texttt{getNotifications}\\\texttt{getUnreadCount}};
-
-    % Tăng text width cho node socket vì đường dẫn dài
-    \node[box, fill=orange!10, below right=0.9cm and 2.2cm of login, text width=4.8cm] (socket) {STOMP/SockJS\\\texttt{/user/queue/notifications}};
-
-    \node[box, fill=green!8, below=1cm of initial] (state) {Cập nhật state\\notifications + unread};
-
-    % Tăng text width cho node toast vì nhiều trạng thái
-    \node[box, fill=green!8, below=1cm of socket, text width=4.8cm] (toast) {Phân loại toast\\error/warning/success/info};
-
-    % Canh giữa node localize so với login và nới rộng ô
-    \node[box, fill=purple!8, below=3.5cm of login, text width=4.2cm] (localize) {\texttt{localizeNotification}\\theo \texttt{language}};
-
-    \draw[arrow] (login) -- (initial);
-    \draw[arrow] (login) -- (socket);
-    \draw[arrow] (initial) -- (state);
-    \draw[arrow] (socket) -- (state);
-    \draw[arrow] (socket) -- (toast);
-    \draw[arrow] (state) -- (localize);
-    \draw[arrow] (toast) -- (localize);
-\end{tikzpicture}
-\caption{Luồng nhận và hiển thị thông báo thời gian thực}
-\label{fig:fe_notification_flow}
-\end{figure}
-
-
-Frontend vừa tải dữ liệu ban đầu bằng REST API,
-vừa duy trì kênh STOMP/SockJS để nhận message mới. Khi message đến, state danh
-sách thông báo và số lượng chưa đọc được cập nhật ngay trong Context; toast được
-phân loại theo loại thông báo.
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/frontend/upload_book.png}{
-        \includegraphics[width=0.85\textwidth]{figures/ch06/frontend/realtime_notification.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.85\textwidth}{\centering Placeholder: thêm ảnh UploadPanel khi upload PDF/cover tại \texttt{figures/ch06/frontend/upload_book.png}}}
-    }
-    \caption{Thông báo theo thời gian thực}
-    \label{fig:fe_notification_toast}
-\end{figure}
-
-
-\subsubsection{Tích hợp AI ở tầng giao diện}
-
-Frontend không chạy mô hình AI trực tiếp. Các màn hình gửi request đến AI service
-hoặc đọc trạng thái xử lý AI từ backend, sau đó hiển thị kết quả trong cùng luồng
-nghiệp vụ. Riêng trang tìm kiếm ưu tiên kết quả lexical từ backend, sau đó mới
-ghép thêm kết quả semantic chưa trùng để tránh làm yếu các truy vấn chính xác
-theo tên sách, tag hoặc danh mục.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.75cm,
-    % Đã nới rộng text width lên 3.6cm để các đường link không bị bẻ chữ
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3.6cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (user) {Người dùng\\nhập truy vấn};
-    \node[box, fill=orange!10, right=0.8cm of user] (search) {\texttt{semanticSearch}\\\texttt{/ai/semantic-search}};
-    \node[box, fill=purple!8, right=0.8cm of search] (ids) {Danh sách\\\texttt{publicationIds}};
-
-    \node[box, fill=green!8, below=0.9cm of ids] (detail) {\texttt{getPublicationById}\\Lấy metadata chuẩn};
-    \node[box, fill=green!8, left=0.8cm of detail] (render) {Render kết quả\\trên \texttt{SearchPage}};
-
-    \node[box, fill=gray!12, below=0.9cm of render] (rec) {\texttt{recommendations}\\trên \texttt{HomePage}};
-    \node[box, fill=gray!12, right=0.8cm of rec] (status) {\texttt{AiStatusBadge}\\trên \texttt{BookList}};
-
-    \draw[arrow] (user) -- (search);
-    \draw[arrow] (search) -- (ids);
-    \draw[arrow] (ids) -- (detail);
-    \draw[arrow] (detail) -- (render);
-
-    % Xử lý logic: Bẻ ngoặt mũi tên sang trái 0.5cm để đi vòng qua node render
-    \draw[arrow] (search.west) -- ++(-0.5,0) |- (rec.west);
-
-    \draw[arrow] (status) -- (rec);
-\end{tikzpicture}
-\caption{Các điểm tích hợp AI trong Frontend}
-\label{fig:fe_ai_integration}
-\end{figure}
-
-
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{|p{3.3cm}|X|X|}
-\hline
-\textbf{Điểm tích hợp} & \textbf{Nguồn dữ liệu} & \textbf{Cách hiển thị} \\
-\hline
-Tìm kiếm hybrid & \texttt{GET /publications/search} và \texttt{/ai/semantic-search}. & Render kết quả lexical trước; kết quả semantic chỉ bổ sung các ấn phẩm chưa xuất hiện. \\
-\hline
-Gợi ý sách & \texttt{/recommendations?limit=...}. & Hiển thị danh sách sách gợi ý trên \texttt{HomePage} khi có phiên đăng nhập. \\
-\hline
-Trạng thái xử lý tài liệu & Trường \texttt{aiProcessingStatus} trong dữ liệu ấn phẩm. & Badge trạng thái trên \texttt{BookList}: \texttt{QUEUED}, \texttt{RUNNING}, \texttt{SUCCESS}, \texttt{FAILED}. \\
-\hline
-\end{tabularx}
-\caption{Tóm tắt điểm tích hợp AI trên giao diện}
-\label{tab:fe_ai_points}
-\end{table}
-
-\subsubsection{Tổng kết hiện thực Frontend}
-
-Nhóm đã hiện thực frontend với route phân vai trò, state dùng chung qua Context,
-service layer cho REST API, lazy loading theo trang, upload có tiến độ, QR cho
-nghiệp vụ nhận sách, QR PayOS cho thanh toán phí phạt, WebSocket cho thông báo và
-các điểm tích hợp AI ở tìm kiếm, gợi ý và quản lý xử lý tài liệu. Các đoạn hiện
-thực có giá trị gồm \texttt{ProtectedRoute}, Axios refresh queue,
-\texttt{UploadContext}, \texttt{NotificationContext} và luồng PayOS polling, vì
-đây là các điểm kết nối trực tiếp giữa giao diện, trạng thái phiên đăng nhập và
-nghiệp vụ vận hành thư viện.
 
 \subsection{Hiện thực Backend}
 
 Nhóm đã hiện thực backend bằng Spring Boot 3.3.5 và Java 21 theo mô hình modular
-monolith. Mã nguồn được chia thành các Maven module theo ranh giới nghiệp vụ thay
-vì chia theo lớp kỹ thuật toàn cục. Module \texttt{library-bootstrap} khởi động
-ứng dụng Spring Boot và khai báo phụ thuộc đến các module nghiệp vụ; module
-\texttt{library-shared} chứa contract, DTO dùng chung, exception, security
-annotation, Kafka event và các port dùng giữa các bounded context.
+monolith. Backend là lớp kiểm soát chính của hệ thống: xác thực, phân quyền,
+giao dịch mượn--trả, trạng thái bản sao, phí phạt, thanh toán, thông báo, audit
+và gateway sang AI service đều đi qua backend. Cấu trúc module được chia theo
+miền nghiệp vụ để dễ bảo trì nhưng vẫn triển khai trong một ứng dụng thống nhất.
+
+
+Để hiện thực hóa tư tưởng thiết kế này, hệ thống được phân rã thành các miền nghiệp vụ độc lập (Bounded Contexts) nhưng vẫn chia sẻ chung một lõi nền tảng (\texttt{library-shared}). Hình \ref{fig:be_architecture_diagram} minh họa chi tiết sơ đồ kiến trúc tổng thể của hệ thống. Trong đó, các module giao tiếp với nhau thông qua cơ chế hướng sự kiện (Event-driven) bằng Apache Kafka hoặc qua các giao diện hợp đồng, giúp giảm thiểu tối đa sự phụ thuộc chéo (tight-coupling).
 
 \begin{figure}[H]
     \centering
-    \IfFileExists{figures/ch06/backend/backend_structure.png}{
-        % Sử dụng height và keepaspectratio để kiểm soát ảnh dáng dọc, chống tràn trang
-        \includegraphics[height=0.7\textheight,keepaspectratio]{figures/ch06/backend/backend_structure.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.5\textwidth}{\centering Placeholder: thêm ảnh cấu trúc thư mục mã nguồn Backend tại \texttt{figures/ch06/backend/backend_structure.png}}}
-    }
-    \caption{Cấu trúc thư mục mã nguồn Backend}
-    \label{fig:source_be}
+    \includegraphics[width=\textwidth]{figures/ch06/backend/backend_architecture.png}
+    \caption{Sơ đồ kiến trúc Modular Monolith tổng thể}
+    \label{fig:be_architecture_diagram}
 \end{figure}
 
+Tương ứng với sơ đồ kiến trúc, mã nguồn vật lý cũng được tổ chức phân rã một cách chặt chẽ. Hình \ref{fig:be_folder_structure} thể hiện cấu trúc thư mục thực tế của dự án, minh chứng cho việc áp dụng triệt để mô hình Modular Monolith vào khâu triển khai mã nguồn.
 
 \begin{figure}[H]
     \centering
-    \IfFileExists{figures/ch06/backend/swagger.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/backend/swagger.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh Swagger/OpenAPI tổng quan Backend tại \texttt{figures/ch06/backend/swagger.png}}}
-    }
-    \caption{Tài liệu API Backend trên Swagger/OpenAPI}
-    \label{fig:be_swagger_overview}
+    \includegraphics[width=0.45\textwidth]{figures/ch06/backend/backend_folder_tree.png}
+    \caption{Cấu trúc thư mục mã nguồn Backend thực tế}
+    \label{fig:be_folder_structure}
 \end{figure}
 
-\subsubsection{Tổ chức Maven module}
+Nhờ cấu trúc phân mảnh rõ ràng, toàn bộ các điểm cuối giao tiếp (API endpoints) của hệ thống đều được quy chuẩn hóa và tự động sinh tài liệu thông qua OpenAPI/Swagger. Do quy mô hệ thống lớn với hàng trăm API, Hình \ref{fig:be_swagger_publication} trích xuất giao diện API của module đại diện (Publication Controller) nhằm minh chứng cho mức độ chi tiết và tính chuẩn mực của các API Contract, đảm bảo sự minh bạch khi tích hợp với Frontend và AI Service.
 
 \begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    % Tăng nhẹ text width của box chính lên 3.8cm để chứa tên dự án dài không bị rớt chữ
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.9cm, text width=3.8cm},
-    smallbox/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=2.8cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (root) {Root Maven POM\\\texttt{library-management-system}};
-    \node[box, fill=orange!10, below=0.8cm of root] (bootstrap) {\texttt{library-bootstrap}\\Spring Boot entrypoint};
-
-    % Neo node catalog ở giữa làm tâm
-    \node[smallbox, fill=green!8, below=1.2cm of bootstrap] (catalog) {\texttt{catalog}\\publication, item};
-
-    % Dàn các node sang trái
-    \node[smallbox, fill=green!8, left=0.35cm of catalog] (user) {\texttt{user}\\profile, notification};
-    \node[smallbox, fill=green!8, left=0.35cm of user] (auth) {\texttt{auth}\\JWT, OAuth2};
-
-    % Dàn các node sang phải
-    \node[smallbox, fill=green!8, right=0.35cm of catalog] (circ) {\texttt{circulation}\\borrow, return, fine};
-    \node[smallbox, fill=green!8, right=0.35cm of circ] (rec) {\texttt{recommendation}\\rating, wishlist, AI};
-
-    % Node shared nằm dưới cùng, neo theo catalog cho thẳng trục
-    \node[box, fill=purple!8, below=1.2cm of catalog] (shared) {\texttt{library-shared}\\port, exception, DTO, event};
-
-    \draw[arrow] (root) -- (bootstrap);
-
-    \draw[arrow] (bootstrap) -- (auth);
-    \draw[arrow] (bootstrap) -- (user);
-    \draw[arrow] (bootstrap) -- (catalog);
-    \draw[arrow] (bootstrap) -- (circ);
-    \draw[arrow] (bootstrap) -- (rec);
-
-    \draw[arrow] (auth) -- (shared);
-    \draw[arrow] (user) -- (shared);
-    \draw[arrow] (catalog) -- (shared);
-    \draw[arrow] (circ) -- (shared);
-    \draw[arrow] (rec) -- (shared);
-\end{tikzpicture}
-\caption{Tổ chức Maven module của Backend}
-\label{fig:be_maven_modules}
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/ch06/backend/publication-controller-swagger.png}
+    \caption{Tài liệu hóa API tự động bằng Swagger (Đại diện module Publication)}
+    \label{fig:be_swagger_publication}
 \end{figure}
 
+Chi tiết nhiệm vụ và nội dung hiện thực của toàn bộ các phân hệ con trong kiến trúc Backend được tổng hợp cụ thể tại Bảng \ref{tab:be_modules_implemented}.
+
+% (Giữ nguyên Bảng \begin{longtable} của bạn ở bên dưới)
+
+\begin{longtable}{|p{3.8cm}|p{4cm}|p{6.5cm}|}
+\caption{Các module Backend đã hiện thực}
+\label{tab:be_modules_implemented}\\
+\hline
+\textbf{Module} & \textbf{Nhóm chức năng} & \textbf{Nội dung đã hiện thực} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Module} & \textbf{Nhóm chức năng} & \textbf{Nội dung đã hiện thực} \\
+\hline
+\endhead
+\texttt{library-bootstrap} & Khởi động hệ thống &
+Cấu hình Spring Boot, datasource, JPA, Flyway, Kafka, mail, OpenAPI, async,
+security, CORS và biến môi trường triển khai. \\
+\hline
+\texttt{library-shared} & Thành phần dùng chung &
+Response wrapper, exception, error code, base entity, DTO dùng chung, shared
+port, Kafka event, S3 storage port và audit logging aspect. \\
+\hline
+\texttt{library-auth-module} & Xác thực &
+Đăng ký, đăng nhập, refresh token, logout, xác thực email, quên mật khẩu, đặt
+lại mật khẩu, Google OAuth2, JWT decoder và WebSocket authentication. \\
+\hline
+\texttt{library-user-module} & Người dùng và thông báo &
+Hồ sơ người dùng, avatar, đổi mật khẩu, vai trò, trạng thái tài khoản, danh sách
+notification, Kafka consumer và WebSocket push. \\
+\hline
+\texttt{library-admin-module} & Quản trị &
+Quản lý tài khoản độc giả/thủ thư, tạo thủ thư, khóa/mở khóa, xác minh tài
+khoản, cấu hình chính sách mượn trả và audit log. \\
+\hline
+\texttt{library-catalog-module} & Catalog thư viện &
+Ấn phẩm, bản sao, tác giả, nhà xuất bản, danh mục, tag, tìm kiếm công khai,
+chi tiết sách, trạng thái bản sao, upload bìa và presigned URL cho PDF. \\
+\hline
+\texttt{library-circulation-module} & Mượn--trả &
+Yêu cầu mượn, mượn trực tiếp, xác nhận nhận sách, trả sách, đặt trước, hàng chờ,
+gia hạn trạng thái, báo hư/mất và cập nhật trạng thái bản sao. \\
+\hline
+\texttt{library-circulation-module} & Phí phạt và scheduler &
+Tính phí quá hạn/hư/mất, thanh toán tiền mặt, PayOS, nhắc sắp đến hạn, xử lý quá
+hạn, hủy đặt trước hết hạn và dashboard vận hành. \\
+\hline
+\texttt{library-recommendation-module} & Tương tác bạn đọc &
+Wishlist, lịch sử tìm kiếm, lượt xem, rating, comment, phản hồi rating của thủ
+thư, đánh giá hệ thống và thống kê tương tác. \\
+\hline
+\texttt{library-recommendation-module} & AI Gateway &
+Gọi semantic search, sách tương tự, recommendation, gửi yêu cầu xử lý PDF, nhận
+AI callback có HMAC và cập nhật metadata AI về publication. \\
+\hline
+\end{longtable}
+
+Để đảm bảo các miền nghiệp vụ nêu trên phối hợp nhịp nhàng và chịu tải tốt, toàn bộ hệ thống được xây dựng trên một bộ tiêu chuẩn kỹ thuật cốt lõi nghiêm ngặt. Bảng \ref{tab:be_technical_summary} trình bày chi tiết các giải pháp nền tảng đã được triển khai, bao gồm chuẩn hóa giao tiếp API, cơ chế bảo mật không trạng thái (stateless), quản trị cơ sở dữ liệu tập trung và các luồng xử lý tác vụ nền bất đồng bộ.
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{|p{3.7cm}|X|}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
 \hline
-\textbf{Module} & \textbf{Trách nhiệm hiện thực} \\
+\textbf{Hạng mục Backend} & \textbf{Nội dung đã hiện thực} \\
 \hline
-\texttt{library-bootstrap} & Khởi động Spring Boot, cấu hình datasource, JPA, Flyway, Kafka, mail, OpenAPI, async và các biến môi trường triển khai. \\
+Chuẩn API &
+\texttt{ApiResponseApp}, \texttt{PageResponse}, mã lỗi nghiệp vụ, message theo
+\texttt{Accept-Language}, \texttt{GlobalExceptionHandler}. \\
 \hline
-\texttt{library-auth-module} & Đăng nhập, đăng ký, refresh token, logout, xác thực email, quên mật khẩu, Google OAuth2, Spring Security và WebSocket authentication. \\
+Bảo mật &
+Spring Security stateless, JWT, refresh token, Google OAuth2, kiểm tra role bằng
+annotation và AOP, khóa tài khoản có hiệu lực ngay khi đăng nhập. \\
 \hline
-\texttt{library-user-module} & Hồ sơ người dùng, vai trò, thông báo, avatar, Kafka consumer cho notification và WebSocket push. \\
+Dữ liệu &
+PostgreSQL, Flyway migration, entity audit, phân biệt ấn phẩm và bản sao, lưu
+trạng thái giao dịch, fine, reservation, notification và dữ liệu AI. \\
 \hline
-\texttt{library-catalog-module} & Ấn phẩm, bản sao, tác giả, nhà xuất bản, danh mục, tag, tìm kiếm công khai, upload bìa, presigned URL cho tài liệu PDF và lưu người tạo/người chỉnh sửa cuối. \\
+Tác vụ nền &
+Scheduler nhắc hạn, xử lý quá hạn, hủy reservation hết hạn, Kafka event cho
+notification và async callback sang frontend. \\
 \hline
-\texttt{library-circulation-module} & Mượn sách, nhận sách, trả sách, đặt trước, hàng chờ, phí phạt, quy định mượn trả cấu hình từ DB, dashboard thủ thư, scheduler và tích hợp PayOS. \\
+Tích hợp ngoài &
+S3-compatible storage, email SMTP, Google OAuth2, PayOS, AI service, WebSocket
+và Swagger/OpenAPI. \\
 \hline
-\texttt{library-recommendation-module} & Wishlist, lịch sử tìm kiếm, đánh giá, phản hồi rating của thủ thư, đánh giá hệ thống, sách tương tự, gợi ý sách, semantic search gateway và AI callback. \\
-\hline
-\texttt{library-shared} & Response wrapper, exception, error code, base entity, shared port, Kafka topic/event, S3 storage port và audit logging aspect. \\
+Quan sát vận hành &
+Audit log, dashboard thủ thư, dashboard admin, lỗi nghiệp vụ có mã rõ ràng và
+log cho callback/tác vụ nền. \\
 \hline
 \end{tabularx}
-\caption{Trách nhiệm của các Backend module}
-\label{tab:be_modules}
+\caption{Các hạng mục kỹ thuật Backend}
+\label{tab:be_technical_summary}
 \end{table}
 
+% --- ĐOẠN CHUYỂN Ý 2: TỪ KỸ THUẬT SANG GIÁ TRỊ VẬN HÀNH ---
+Việc áp dụng kiến trúc Modular Monolith và các công nghệ phụ trợ không chỉ nhằm mục đích đáp ứng yêu cầu phần mềm, mà còn trực tiếp giải quyết các bài toán vận hành thực tế của một thư viện hiện đại. Bảng \ref{tab:be_value_highlights} đúc kết những giá trị cốt lõi mà thiết kế Backend đã mang lại, từ việc đảm bảo tính toàn vẹn dữ liệu xuyên suốt các giao dịch mượn trả, khả năng bảo trì hệ thống, cho đến độ an toàn tuyệt đối khi giao tiếp với các dịch vụ bên ngoài (External Services).
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{|p{3.4cm}|X|X|}
+\begin{tabularx}{\textwidth}{|p{3.4cm}|X|p{3.4cm}|}
 \hline
-\textbf{Phương án} & \textbf{Đặc điểm} & \textbf{Quyết định của nhóm} \\
+\textbf{Điểm hiện thực} & \textbf{Nội dung đã làm} & \textbf{Ý nghĩa vận hành} \\
 \hline
-Layered monolith & Dễ khởi tạo, nhưng các module nghiệp vụ có xu hướng phụ thuộc chéo qua service/repository dùng chung. & Không được chọn làm cấu trúc chính vì khó giữ ranh giới nghiệp vụ khi hệ thống mở rộng. \\
+Ranh giới module &
+Auth, user, admin, catalog, circulation và recommendation tách theo miền nghiệp vụ. &
+Dễ đọc code, dễ kiểm thử và giảm phụ thuộc chéo khi mở rộng. \\
 \hline
-Microservices đầy đủ & Mỗi service triển khai độc lập, nhưng yêu cầu service discovery, distributed tracing, API gateway và xử lý giao dịch phân tán. & Chưa phù hợp với phạm vi đồ án vì chi phí vận hành cao hơn lợi ích đạt được ở giai đoạn hiện tại. \\
+Luồng trạng thái sách &
+Backend kiểm soát item, transaction, reservation, fine và notification theo một nguồn dữ liệu thống nhất. &
+Tránh lệch trạng thái giữa giao diện bạn đọc và giao diện thủ thư. \\
 \hline
-Modular monolith & Một tiến trình triển khai, nhưng code được chia theo bounded context và giao tiếp qua interface/event. & Được chọn vì giữ đơn giản trong triển khai, đồng thời vẫn tạo đường tách module trong tương lai. \\
+Tích hợp ngoài &
+PayOS, Google OAuth2, email, storage, AI service, WebSocket và Swagger/OpenAPI. &
+Hệ thống có khả năng chạy như một sản phẩm hoàn chỉnh, không chỉ là prototype. \\
 \hline
-\end{tabularx}
-\caption{Lý do lựa chọn mô hình Backend}
-\label{tab:be_architecture_decision}
-\end{table}
-
-\subsubsection{Clean Architecture trong từng module}
-
-Nhóm đã tổ chức mỗi module nghiệp vụ theo bốn lớp: \texttt{presentation},
-\texttt{application}, \texttt{domain} và \texttt{infrastructure}. Controller chỉ
-nhận request và gọi use case. Use case điều phối nghiệp vụ và transaction.
-Domain chứa entity, value object và enum nghiệp vụ. Infrastructure hiện thực JPA
-repository, external client, scheduler, Kafka, S3 hoặc payment adapter.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.9cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8, text width=3.5cm] (controller) {Presentation\\REST Controller};
-    \node[box, fill=green!8, text width=3.5cm, right=1cm of controller] (app) {Application\\Use case + DTO};
-    \node[box, fill=yellow!12, text width=3.5cm, right=1cm of app] (domain) {Domain\\Entity + VO + rule};
-    \node[box, fill=purple!8, text width=3.5cm, below=1cm of app] (infra) {Infrastructure\\JPA, Kafka, S3, external API};
-
-    \draw[arrow] (controller) -- (app);
-    \draw[arrow] (app) -- (domain);
-    \draw[arrow] (infra) -- (app);
-    \draw[arrow] (infra) -- (domain);
-\end{tikzpicture}
-\caption{Phân lớp Clean Architecture trong một Backend module}
-\label{fig:be_clean_architecture}
-\end{figure}
-
-
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{|p{3.2cm}|X|X|}
-\hline
-\textbf{Lớp} & \textbf{Thành phần mã nguồn} & \textbf{Ví dụ trong hệ thống} \\
-\hline
-Presentation & REST controller, request mapping, security annotation. & \texttt{PublicationController}, \texttt{BorrowingTransactionController}, \texttt{AuthController}. \\
-\hline
-Application & Interface use case, implementation, mapper, DTO. & \texttt{BorrowRequestUseCaseImpl}, \texttt{CreateReservationUseCaseImpl}, \texttt{SearchPublicationsUseCaseImpl}. \\
-\hline
-Domain & Entity, enum, value object, domain event. & \texttt{Publication}, \texttt{Item}, \texttt{BorrowingTransaction}, \texttt{Reservation}, \texttt{Fine}. \\
-\hline
-Infrastructure & JPA entity/repository, adapter, scheduler, external client. & \texttt{PublicationRepositoryImpl}, \texttt{ItemStatusPortImpl}, \texttt{NotificationEventConsumer}, \texttt{PayOsClient}. \\
+An toàn callback &
+Webhook PayOS và callback AI đều có cơ chế kiểm tra chữ ký hoặc token. &
+Giảm rủi ro cập nhật trạng thái giả từ request bên ngoài. \\
 \hline
 \end{tabularx}
-\caption{Quy ước hiện thực theo lớp}
-\label{tab:be_clean_layers}
+\caption{Các điểm giá trị nổi bật ở Backend}
+\label{tab:be_value_highlights}
 \end{table}
-
-Đoạn mã dưới đây thể hiện cách nhóm đưa kiểm tra xác thực và phân quyền ra khỏi
-từng controller bằng annotation và AOP. Controller chỉ cần khai báo
-\texttt{@RequiresRole} hoặc \texttt{@RequiresAuthentication}; logic kiểm tra được
-thực thi tập trung trong \texttt{SecurityAspect}.
-
-
-\subsubsection{Chuẩn hóa response, lỗi và phân trang}
-
-Tất cả API trả về cấu trúc \texttt{ApiResponseApp} gồm \texttt{code},
-\texttt{message} và \texttt{data}. Các API danh sách dùng \texttt{PageResponse}
-để thống nhất phân trang giữa frontend và backend. Lỗi nghiệp vụ được ném bằng
-\texttt{AppException} kèm \texttt{ErrorCode}; \texttt{GlobalExceptionHandler}
-chuyển exception thành response JSON theo HTTP status tương ứng.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.75cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3.2cm},
-    decision/.style={draw, diamond, aspect=2.2, align=center, inner sep=1pt, text width=2.8cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (controller) {Controller};
-    \node[box, fill=green!8, below=of controller] (usecase) {Use case};
-    \node[decision, fill=yellow!12, below=of usecase] (valid) {Nghiệp vụ hợp lệ?};
-    \node[box, fill=green!8, below left=0.9cm and 1.1cm of valid] (ok) {\texttt{ApiResponseApp.success}\\hoặc \texttt{created}};
-    \node[box, fill=red!8, below right=0.9cm and 1.1cm of valid] (err) {\texttt{AppException}\\\texttt{ErrorCode}};
-    \node[box, fill=orange!10, below=1cm of err] (handler) {\texttt{GlobalExceptionHandler}\\chuẩn hóa JSON lỗi};
-
-    \draw[arrow] (controller) -- (usecase);
-    \draw[arrow] (usecase) -- (valid);
-    \draw[arrow] (valid) -- node[left]{có} (ok);
-    \draw[arrow] (valid) -- node[right]{không} (err);
-    \draw[arrow] (err) -- (handler);
-\end{tikzpicture}
-\caption{Luồng chuẩn hóa response và exception}
-\label{fig:be_response_exception_flow}
-\end{figure}
-
-
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{|p{3cm}|X|}
-\hline
-\textbf{Khoảng mã} & \textbf{Nhóm lỗi} \\
-\hline
-\texttt{1100--1199} & Người dùng: trùng email, tài khoản chưa kích hoạt, sai thông tin đăng nhập. \\
-\hline
-\texttt{1400--1499} & Xác thực: thiếu token, token hết hạn, refresh token thất bại. \\
-\hline
-\texttt{2000--2599} & Catalog: ấn phẩm, bản sao, tác giả, nhà xuất bản, danh mục, tag. \\
-\hline
-\texttt{2700--2799} & Rating: điều kiện đánh giá, cửa sổ chỉnh sửa, trùng đánh giá. \\
-\hline
-\texttt{3000--3199} & Circulation và notification: giao dịch mượn, đặt trước, phí phạt, thông báo. \\
-\hline
-\end{tabularx}
-\caption{Nhóm mã lỗi nghiệp vụ}
-\label{tab:be_error_codes}
-\end{table}
-
-Việc chuẩn hóa lỗi được kết hợp với \texttt{Accept-Language}. Khi frontend gửi
-header ngôn ngữ, \texttt{GlobalExceptionHandler} chọn thông điệp tiếng Việt hoặc
-tiếng Anh từ \texttt{ErrorCode}; nhờ đó, frontend không cần tự ánh xạ toàn bộ mã
-lỗi nghiệp vụ.
-
-\subsubsection{Xác thực và phân quyền}
-
-Backend dùng Spring Security ở chế độ stateless. Các endpoint công khai, Swagger,
-WebSocket handshake, semantic search và webhook được khai báo trong
-\texttt{SecurityConfig}; các request còn lại yêu cầu JWT hợp lệ. JWT được giải mã
-bởi \texttt{CustomJwtDecoder}; \texttt{CustomAuthenticationConverter} chuyển
-claim trong token thành principal và authority dùng trong SecurityContext.
-
-Phân quyền ở tầng use case/controller được hiện thực bằng annotation
-\texttt{@RequiresAuthentication}, \texttt{@RequiresRole} và AOP
-\texttt{SecurityAspect}. Cách này giữ kiểm tra quyền gần với endpoint nghiệp vụ
-và tái sử dụng cùng một \texttt{SecurityEvaluator}.
-
-Backend cũng kiểm soát trạng thái tài khoản ngay ở
-luồng đăng nhập. Khi tài khoản bị khóa hoặc không còn hoạt động, use case xác
-thực dừng trước bước phát hành token và trả lỗi nghiệp vụ để frontend hiển thị
-thông báo tài khoản đã bị khóa. Nhờ đó việc admin khóa tài khoản độc giả hoặc
-thủ thư có hiệu lực ngay ở lớp bảo mật, không chỉ là thay đổi hiển thị trên giao
-diện.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.8cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3.25cm},
-    decision/.style={draw, diamond, aspect=2, align=center, inner sep=1pt, text width=2.8cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (req) {HTTP request};
-    \node[decision, fill=yellow!12, below=of req] (public) {Public endpoint?};
-    \node[box, fill=green!8, below left=0.9cm and 1.1cm of public] (allow) {Cho phép truy cập};
-    \node[box, fill=orange!10, below right=0.9cm and 1.1cm of public] (jwt) {OAuth2 Resource Server\\decode JWT};
-    \node[box, fill=purple!8, below=1cm of jwt] (context) {SecurityContext\\principal + role};
-    \node[decision, fill=yellow!12, below=1cm of context] (aspect) {Annotation quyền?};
-    \node[box, fill=green!8, below left=0.9cm and 1.1cm of aspect] (usecase) {Gọi use case};
-    \node[box, fill=red!8, below right=0.9cm and 1.1cm of aspect] (forbid) {401/403};
-
-    \draw[arrow] (req) -- (public);
-    \draw[arrow] (public) -- node[left]{có} (allow);
-    \draw[arrow] (public) -- node[right]{không} (jwt);
-    \draw[arrow] (jwt) -- (context);
-    \draw[arrow] (context) -- (aspect);
-    \draw[arrow] (aspect) -- node[left]{hợp lệ} (usecase);
-    \draw[arrow] (aspect) -- node[right]{không hợp lệ} (forbid);
-\end{tikzpicture}
-\caption{Luồng xác thực và phân quyền Backend}
-\label{fig:be_security_flow}
-\end{figure}
-
-\subsubsection{Admin, policy và audit vận hành}
-
-Để hệ thống có khả năng quản trị tập trung, backend bổ sung nhóm API admin chạy
-thật thay vì chỉ phục vụ UI tĩnh. Các API này chỉ cho phép role
-\texttt{ADMIN} truy cập, dùng cùng cơ chế JWT và AOP phân quyền với các module
-khác. Admin có thể tạo tài khoản thủ thư, xem/quản lý tài khoản độc giả và thủ
-thư, khóa/mở khóa tài khoản, xác minh hồ sơ, cấu hình quy định mượn trả và xem
-nhật ký thao tác.
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{4cm}|X|}
-\hline
-\textbf{Endpoint} & \textbf{Vai trò hiện thực} \\
-\hline
-\texttt{GET/POST /api/v1/admin/librarians} & Liệt kê và tạo tài khoản thủ thư, bắt buộc thông tin nghiệp vụ như mã thủ thư, số điện thoại, địa chỉ và ảnh đại diện. \\
-\hline
-\texttt{GET /api/v1/admin/users} & Tra cứu tài khoản độc giả/thủ thư theo vai trò, trạng thái và từ khóa để phục vụ quản trị truy cập. \\
-\hline
-\texttt{PATCH /api/v1/admin/users/\{id\}/status} & Khóa, kích hoạt lại hoặc vô hiệu hóa tài khoản; trạng thái này được kiểm tra trong luồng đăng nhập. \\
-\hline
-\texttt{PATCH /api/v1/admin/users/\{id\}/verify} & Xác minh tài khoản khi hồ sơ đã đầy đủ, giúp phân biệt tài khoản đã được kiểm duyệt với tài khoản mới tạo. \\
-\hline
-\texttt{GET/PUT /api/v1/circulation-policies/admin} & Đọc và cập nhật quy định mượn trả dùng chung cho đặt mượn online, mượn trực tiếp, xác nhận nhận sách, đặt trước, trả sách và tính phí trễ hạn. \\
-\hline
-\texttt{GET /api/v1/admin/audit-logs} & Trả nhật ký thao tác có actor, vai trò, action, phân hệ, đối tượng, nội dung tóm tắt và thời điểm để admin lọc/tìm kiếm/sắp xếp. \\
-\hline
-\end{tabularx}
-\caption{Nhóm API Backend cho Admin và quản trị vận hành}
-\label{tab:be_admin_governance_api}
-\end{table}
-
-Quy định mượn trả được lưu trong bảng \texttt{circulation\_policies} thay vì
-hard-code trong use case. Các use case mượn, đặt trước, xác nhận nhận sách và
-trả sách đều đọc qua \texttt{CirculationPolicyService}. Điều này bảo đảm khi
-admin thay đổi hạn nhận sách, số ngày mượn, giới hạn sách đang mượn/đặt trước
-hoặc mức phí trễ hạn, toàn bộ luồng nghiệp vụ dùng cùng một nguồn cấu hình.
-
-
-Nhật ký vận hành được lưu vào bảng \texttt{audit\_logs}. Audit logging ghi lại
-những thao tác quan trọng như đăng nhập/đăng xuất, đổi mật khẩu, cập nhật hồ sơ,
-upload avatar, mượn/trả sách, thu phí, rating, phản hồi rating, tạo/sửa ấn phẩm,
-thay đổi quy định và quyết định khóa/xác minh tài khoản. Backend lưu cả thông
-tin dễ đọc cho admin và dữ liệu kỹ thuật cần thiết để đối soát: endpoint, HTTP
-method, mã phản hồi, entity type và entity id.
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{3.7cm}|X|}
-\hline
-\textbf{Endpoint} & \textbf{Xử lý} \\
-\hline
-\texttt{POST /api/v1/auth/login} & Xác thực email/mật khẩu, phát hành access token và refresh token. \\
-\hline
-\texttt{POST .../refresh-accesstoken} & Nhận refresh token qua header \texttt{re-token}, cấp cặp token mới. \\
-\hline
-\texttt{POST /api/v1/auth/logout} & Vô hiệu hóa refresh token hiện tại. \\
-\hline
-\texttt{GET .../login-with-social} & Sinh URL đăng nhập Google OAuth2. \\
-\hline
-\texttt{POST .../social-callback/\{id\}} & Xử lý authorization code, tạo hoặc đăng nhập tài khoản social, đồng thời vẫn kiểm tra trạng thái tài khoản trước khi trả token. \\
-\hline
-\end{tabularx}
-\caption{Các endpoint xác thực chính}
-\label{tab:be_auth_endpoints}
-\end{table}
-
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/backend/google_oauth2.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/backend/google_oauth2.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh luồng đăng nhập, refresh token và Google OAuth2 tại \texttt{figures/ch06/backend/google_oauth2.png}}}
-    }
-    \caption{Đăng nhập bằng Google OAuth2}
-    \label{fig:be_google_oauth2_flow}
-\end{figure}
-
-\subsubsection{Hiện thực Catalog module}
-
-Nhóm đã hiện thực Catalog module để quản lý dữ liệu ấn phẩm và bản sao. Controller chính là
-\texttt{PublicationController}; các controller phụ xử lý tác giả, nhà xuất bản,
-danh mục, tag và item. Module này cung cấp API công khai cho tìm kiếm/xem chi
-tiết sách và API thủ thư cho quản lý metadata.
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{3.9cm}|X|}
-\hline
-\textbf{Nhóm endpoint} & \textbf{Use case được kích hoạt} \\
-\hline
-\texttt{GET /api/v1/publications/search} & Tìm kiếm công khai theo từ khóa, tag, danh mục, ngôn ngữ, năm, chi nhánh, trạng thái còn bản sao; keyword match cả dữ liệu gốc và bảng dịch. \\
-\hline
-\texttt{GET /api/v1/publications/\{id\}} & Lấy chi tiết ấn phẩm, metadata dịch theo \texttt{Accept-Language}. \\
-\hline
-\texttt{GET .../publications/librarian} & Trả danh sách ấn phẩm cho thủ thư kèm số bản, trạng thái xử lý AI và bộ lọc quản trị. \\
-\hline
-\texttt{POST/PUT/DELETE .../publications} & Tạo, cập nhật và xóa ấn phẩm, kiểm tra ràng buộc bản sao và đặt trước đang hoạt động. \\
-\hline
-\texttt{GET .../document-upload-url}, \texttt{PUT .../document-url} & Sinh presigned URL cho PDF và lưu \texttt{s3Key} sau khi frontend upload xong. \\
-\hline
-\texttt{POST .../\{id\}/cover} & Upload ảnh bìa qua multipart request. \\
-\hline
-\end{tabularx}
-\caption{Nhóm API của Catalog module}
-\label{tab:be_catalog_api}
-\end{table}
-
-Các thao tác tạo và cập nhật ấn phẩm cũng lưu lại người tạo và
-người chỉnh sửa cuối cùng. Thông tin này giúp admin hoặc thủ thư trưởng truy vết
-metadata sách được nhập bởi ai, lần sửa cuối do ai thực hiện, đồng bộ với hướng
-quản trị vận hành bằng audit log của toàn hệ thống.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    % Nới rộng khoảng cách giữa các hàng và các cột để sơ đồ thoáng hơn
-    node distance=1.4cm and 1.2cm,
-    font=\small\sffamily,
-    % Định nghĩa style cơ bản cho các hộp
-    basebox/.style={draw, rounded corners=3pt, align=center, minimum height=1.1cm},
-    % Hộp chuẩn cho các bước thông thường
-    box/.style={basebox, text width=3.8cm},
-    % Hộp đặc biệt rộng hơn dành riêng cho UseCase để tránh tràn chữ
-    ucbox/.style={basebox, text width=5.2cm},
-    arrow/.style={-{Latex[length=2.4mm]}, thick}
-]
-    % --- Hàng 1: Luồng xử lý chính ---
-    \node[box, fill=blue!8] (request) {Thủ thư tạo/cập nhật\\ấn phẩm};
-    \node[ucbox, fill=green!8, right=of request] (usecase) {\texttt{CreatePublicationUseCase}\\hoặc \texttt{UpdatePublicationUseCase}};
-    \node[box, fill=yellow!12, right=of usecase] (domain) {Domain\\Publication, Author,\\Category, Tag};
-
-    % --- Hàng 2: Các Adapter và Hạ tầng phía dưới ---
-    \node[box, fill=purple!8, below=of domain] (repo) {JPA repository\\PostgreSQL};
-    \node[box, fill=orange!10, below=of usecase] (storage) {S3 storage port\\cover/PDF key};
-    \node[box, fill=gray!12, below=of request] (ai) {AI ETL status\\queued / running /\\success / failed};
-
-    % --- Các đường nối luồng nghiệp vụ ---
-    \draw[arrow] (request) -- (usecase);
-    \draw[arrow] (usecase) -- (domain);
-    \draw[arrow] (domain) -- (repo);
-    \draw[arrow] (usecase) -- (storage);
-    \draw[arrow] (storage) -- (ai);
-\end{tikzpicture}
-\caption{Luồng hiện thực quản lý ấn phẩm trong Catalog module}
-\label{fig:be_catalog_flow}
-\end{figure}
-
-Search trong Catalog module được hiện thực bằng SQL động trong
-\texttt{SearchPublicationsUseCaseImpl}. Khi có keyword, backend match trên nhan
-đề, phụ đề, mô tả, ISBN, tác giả, tag và category. Đối với tag/category, truy
-vấn không chỉ dùng bản hiển thị theo \texttt{Accept-Language}; nó match cả tên
-gốc tiếng Việt trong \texttt{tags}/\texttt{categories} và mọi alias trong
-\texttt{tag\_translations}/\texttt{category\_translations}. Nhờ vậy truy vấn
-\texttt{web development} vẫn tìm được tag \texttt{Lập Trình Web}, và truy vấn
-tiếng Việt vẫn tìm được tài liệu đang hiển thị ở giao diện tiếng Anh. Khi sắp
-xếp theo liên quan, thứ tự ưu tiên là nhan đề/phụ đề, exact tag, partial tag,
-sau đó mới đến tiêu chí phụ như năm xuất bản.
-
-Đối với upload tài liệu PDF, backend không nhận trực tiếp file lớn qua server.
-\texttt{GetDocumentUploadUrlUseCase} sinh presigned PUT URL thông qua
-\texttt{StoragePort}. Frontend upload file trực tiếp lên S3, sau đó gọi
-\texttt{SaveDocumentUrlUseCase} để lưu \texttt{s3Key}. Cách này giảm tải băng
-thông cho backend và vẫn giữ quyền kiểm soát metadata trong PostgreSQL.
-
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/backend/catalog.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/backend/catalog.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh Swagger nhóm API Catalog tại \texttt{figures/ch06/backend/catalog.png}}}
-    }
-    \caption{Nhóm API Catalog trên Swagger}
-    \label{fig:be_catalog_swagger}
-\end{figure}
-
-\subsubsection{Hiện thực Circulation module}
-
-Nhóm đã hiện thực Circulation module để xử lý vòng đời mượn--trả, đặt trước, phí phạt và dashboard
-thủ thư. Các use case trong module này dùng \texttt{@Transactional} để đảm bảo
-cập nhật giao dịch, bản sao, phí phạt và notification event trong cùng một ranh
-giới nghiệp vụ.
-
-Các quy định mượn trả trong module này không còn là hằng số cố định trong mã
-nguồn. \texttt{BorrowRequestUseCase}, \texttt{DirectBorrowUseCase},
-\texttt{ConfirmPickupUseCase}, \texttt{CreateReservationUseCase},
-\texttt{ConfirmReservationPickupUseCase} và \texttt{ReturnBookUseCase} đều đọc
-\texttt{CirculationPolicyService}. Nhờ vậy cùng một cấu hình từ admin được áp
-dụng thống nhất cho mượn online, mượn trực tiếp, đặt trước, hạn nhận sách, giới
-hạn đang mượn/đang chờ nhận và phí trễ hạn.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.75cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3cm},
-    decision/.style={draw, diamond, aspect=2.2, align=center, inner sep=1pt, text width=2.7cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (borrow) {\texttt{POST /transactions/borrow}};
-    \node[box, fill=orange!10, below=of borrow] (check) {Kiểm tra user\\fine, limit, duplicate};
-    \node[decision, fill=yellow!12, below=of check] (available) {Item available?};
-    \node[box, fill=green!8, below left=0.9cm and 1.1cm of available] (waiting) {Tạo transaction\\\texttt{WAITING\_FOR\_PICKUP}};
-    \node[box, fill=red!8, below right=0.9cm and 1.1cm of available] (reject) {Trả lỗi nghiệp vụ};
-    \node[box, fill=purple!8, below=0.9cm of waiting] (item) {Cập nhật item\\\texttt{RESERVED}};
-    \node[box, fill=gray!12, below=0.9cm of item] (notif) {Gửi Kafka notification/email};
-
-    \draw[arrow] (borrow) -- (check);
-    \draw[arrow] (check) -- (available);
-    \draw[arrow] (available) -- node[left]{có} (waiting);
-    \draw[arrow] (available) -- node[right]{không} (reject);
-    \draw[arrow] (waiting) -- (item);
-    \draw[arrow] (item) -- (notif);
-\end{tikzpicture}
-\caption{Luồng xử lý yêu cầu mượn sách}
-\label{fig:be_borrow_flow}
-\end{figure}
-
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    node distance=0.75cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3.1cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (return) {\texttt{POST /transactions/return}};
-    \node[box, fill=orange!10, right=0.8cm of return] (lookup) {Tra cứu giao dịch\\theo barcode};
-    \node[box, fill=green!8, right=0.8cm of lookup] (status) {Cập nhật transaction\\\texttt{RETURNED}};
-    \node[box, fill=yellow!12, below=0.9cm of status] (fine) {Tính phí trễ hạn\\nếu có};
-    \node[box, fill=purple!8, left=0.8cm of fine] (item) {Cập nhật item\\\texttt{AVAILABLE}};
-    \node[box, fill=gray!12, left=0.8cm of item] (queue) {Gán cho reservation\\tiếp theo nếu có};
-
-    \draw[arrow] (return) -- (lookup);
-    \draw[arrow] (lookup) -- (status);
-    \draw[arrow] (status) -- (fine);
-    \draw[arrow] (fine) -- (item);
-    \draw[arrow] (item) -- (queue);
-\end{tikzpicture}
-\caption{Luồng trả sách và xử lý hàng chờ}
-\label{fig:be_return_flow}
-\end{figure}
-
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabularx}{\textwidth}{|p{3cm}|X|}
-\hline
-\textbf{Nhóm} & \textbf{Use case tiêu biểu} \\
-\hline
-Mượn sách & \texttt{BorrowRequestUseCase}, \texttt{DirectBorrowUseCase}, \texttt{LookupForPickupUseCase}, \texttt{ConfirmPickupUseCase}. \\
-\hline
-Trả sách & \texttt{LookupActiveTransactionUseCase}, \texttt{GetStudentActiveTransactionsUseCase}, \texttt{ReturnBookUseCase}, \texttt{ReportIssueUseCase}. \\
-\hline
-Đặt trước & \texttt{CreateReservationUseCase}, \texttt{CancelReservationUseCase}, \texttt{LookupReservationForPickupUseCase}, \texttt{ConfirmReservationPickupUseCase}. \\
-\hline
-Phí phạt & \texttt{GetMyFinesUseCase}, \texttt{GetStudentFinesUseCase}, \texttt{PayFineUseCase}, \texttt{PayAllFinesUseCase}, \texttt{FinePaymentService}. \\
-\hline
-Ghi chú giao dịch & \texttt{TransactionNoteController} và bảng \texttt{transaction\_notes} lưu nhiều ghi chú theo từng thủ thư trên cùng một giao dịch. \\
-\hline
-Dashboard & \texttt{DashboardSummaryUseCase}, \texttt{DashboardChartsUseCase}, \texttt{DashboardRiskyUsersUseCase}. \\
-\hline
-\end{tabularx}
-\caption{Các nhóm use case chính trong Circulation module}
-\label{tab:be_circulation_usecases}
-\end{table}
-
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/backend/circulation.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/backend/circulation.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh Swagger nhóm API mượn--trả, đặt trước và phí phạt tại \texttt{figures/ch06/backend/circulation.png}}}
-    }
-    \caption{Nhóm API Circulation trên Swagger}
-    \label{fig:be_circulation_swagger}
-\end{figure}
-
-\subsubsection{Scheduler, notification và WebSocket}
-
-Các tác vụ nền trong circulation được hiện thực bằng Spring Scheduler. Scheduler
-đánh dấu giao dịch quá hạn, gửi nhắc hạn trả, hủy phiếu chờ nhận quá hạn và hủy
-đặt trước quá hạn. Khi cần gửi thông báo, module phát message lên Kafka topic
-\texttt{notification.send}; \texttt{NotificationEventConsumer} ở user module lưu
-thông báo vào database và đẩy dữ liệu đến người dùng qua WebSocket.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\scriptsize,
-    node distance=0.55cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.78cm, text width=2.7cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (producer) {Use case / Scheduler};
-    \node[box, fill=orange!10, right=0.55cm of producer] (kafka) {Kafka topic\\\texttt{notification.send}};
-    \node[box, fill=green!8, right=0.55cm of kafka] (consumer) {\texttt{Notification}\\\texttt{EventConsumer}};
-    \node[box, fill=purple!8, below=0.9cm of consumer] (db) {Lưu \texttt{notifications}\\và \texttt{user\_notifications}};
-    \node[box, fill=gray!12, left=0.55cm of db] (ws) {WebSocket\\\texttt{/user/queue/...}};
-    \node[box, fill=yellow!12, left=0.55cm of ws] (client) {Frontend toast\\+ unread};
-
-    \draw[arrow] (producer) -- (kafka);
-    \draw[arrow] (kafka) -- (consumer);
-    \draw[arrow] (consumer) -- (db);
-    \draw[arrow] (consumer) -- (ws);
-    \draw[arrow] (ws) -- (client);
-\end{tikzpicture}
-\caption{Luồng phát thông báo bất đồng bộ}
-\label{fig:be_notification_pipeline}
-\end{figure}
-
-
-\begin{table}[H]
-\centering
-\small % Nâng kích thước font lên để dễ đọc, không dùng scriptsize
-\renewcommand{\arraystretch}{1.4} % Tạo không gian thở cho các dòng dữ liệu
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.5cm} X >{\raggedright\arraybackslash}p{3.2cm}}
-\toprule
-\textbf{Scheduler} & \textbf{Nghiệp vụ xử lý} & \textbf{Chu kỳ kích hoạt} \\
-\midrule
-\texttt{OverdueMarkingScheduler} & Chuyển trạng thái các giao dịch mượn sách (\texttt{BORROWING}) đã quá hạn sang \texttt{OVERDUE}. & 01:00 hằng ngày \\
-
-\texttt{DueDateWarningScheduler} & Quét cơ sở dữ liệu và tự động gửi thông báo/email nhắc nhở trước hạn trả 3 ngày và 1 ngày. & 08:00 hằng ngày \\
-
-\texttt{ExpiredPickupScheduler} & Hủy các giao dịch \texttt{WAITING\_FOR\_PICKUP} quá hạn; chuyển trạng thái ấn phẩm về \texttt{AVAILABLE} và kích hoạt hàng chờ cấp phát tiếp theo. & Mỗi 1 giờ \\
-
-\texttt{ExpiredReservationScheduler} & Tự động hủy lượt đặt trước đã quá hạn giữ chỗ, giải phóng và thông báo cho người dùng kế tiếp trong hàng chờ. & Mỗi 1 giờ \\
-\bottomrule
-\end{tabularx}
-\caption{Các Scheduler được hiện thực trong Circulation module}
-\label{tab:be_schedulers}
-\end{table}
-
-Đối với thông báo, nhóm đã chọn Kafka thay vì gọi trực tiếp WebSocket trong từng
-use case. Phương án này tách side effect khỏi transaction chính: use case chỉ
-phát event, còn user module chịu trách nhiệm lưu notification và đẩy WebSocket.
-
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/backend/notification.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/backend/notification.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh bảng notification hoặc WebSocket log tại \texttt{figures/ch06/backend/notification.png}}}
-    }
-    \caption{Dữ liệu thông báo sau khi Kafka consumer xử lý}
-    \label{fig:be_notification_db}
-\end{figure}
-
-\subsubsection{Tích hợp dịch vụ ngoài}
-
-Các dịch vụ ngoài được đặt ở tầng infrastructure và được gọi thông qua adapter
-hoặc port. S3 được dùng cho ảnh đại diện, bìa sách và tài liệu PDF. PayOS được
-dùng cho thanh toán phí phạt. Google OAuth2 được dùng cho đăng nhập social. AI
-service được gọi qua \texttt{AiGatewayService} cho semantic search và cập nhật
-trạng thái xử lý tài liệu qua callback có chữ ký HMAC.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\small,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.85cm, text width=3.2cm},
-    arrow/.style={-{Latex[length=2.2mm]}, thick}
-]
-    \node[box, fill=blue!8] (backend) {Spring Boot Backend};
-
-    % Dùng xshift và yshift từ tâm dưới của backend để dàn đều 4 ô tuyệt đối
-    \node[box, fill=green!8] (db) at ([xshift=-5.4cm, yshift=-1.5cm]backend.south) {PostgreSQL\\JPA + Flyway};
-    \node[box, fill=orange!10] (kafka) at ([xshift=-1.8cm, yshift=-1.5cm]backend.south) {Kafka\\notification/email};
-
-    \node[box, fill=purple!8] (s3) at ([xshift=1.8cm, yshift=-1.5cm]backend.south) {AWS S3\\file storage};
-    \node[box, fill=yellow!12] (external) at ([xshift=5.4cm, yshift=-1.5cm]backend.south) {Google OAuth2\\PayOS\\AI service};
-
-    \draw[arrow] (backend) -- (db);
-    \draw[arrow] (backend) -- (kafka);
-    \draw[arrow] (backend) -- (s3);
-    \draw[arrow] (backend) -- (external);
-\end{tikzpicture}
-\caption{Các tích hợp hạ tầng và dịch vụ ngoài của Backend}
-\label{fig:be_external_integrations}
-\end{figure}
-
-
-\begin{table}[H]
-\centering
-\begin{tabularx}{\textwidth}{|p{3.5cm}|X|}
-\hline
-\textbf{Thành phần} & \textbf{Cấu hình/hiện thực} \\
-\hline
-Database & PostgreSQL, \texttt{spring.jpa.hibernate.ddl-auto=validate}, schema được quản lý bằng Flyway migration. \\
-\hline
-Kafka & Producer/consumer dùng JSON serializer, group id \texttt{library-group}, topic dùng cho notification và email. \\
-\hline
-S3 & AWS SDK v2, \texttt{S3Client}, \texttt{S3Presigner}, bucket cấu hình qua \texttt{spring.aws.s3.bucket}. \\
-\hline
-Mail & SMTP Gmail qua Spring Mail, dùng cho xác thực email, quên mật khẩu và nhắc hạn trả. \\
-\hline
-OpenAPI & \texttt{springdoc-openapi-starter-webmvc-ui}, phục vụ tài liệu API cho kiểm thử và tích hợp frontend. \\
-\hline
-Deployment & Docker build JAR từ \texttt{library-bootstrap}, ứng dụng chạy cổng \texttt{8080}. \\
-\hline
-\end{tabularx}
-\caption{Cấu hình hạ tầng Backend}
-\label{tab:be_infra_config}
-\end{table}
-
-Đối với callback từ AI service, nhóm không cho phép cập nhật trạng thái xử lý tài
-liệu nếu request không có chữ ký hợp lệ. Header timestamp được kiểm tra để giảm
-rủi ro replay; chữ ký được tính bằng HMAC-SHA256 trên chuỗi
-\texttt{timestamp.body}.
-
-\begin{lstlisting}[language=Java, caption={Xác minh chữ ký callback từ AI service}, label={lst:be_ai_callback_hmac}]
-String payload = timestamp + "." + requestBody;
-String expected = hmacSha256Hex(callbackSecret, payload);
-
-if (!MessageDigest.isEqual(
-        expected.getBytes(StandardCharsets.UTF_8),
-        signatureFromHeader.getBytes(StandardCharsets.UTF_8))) {
-    throw new UnauthorizedException("Invalid AI callback signature");
-}
-\end{lstlisting}
-
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/backend/ai_callback.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/backend/ai_callback.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh log hoặc Postman callback AI tại \texttt{figures/ch06/backend/ai_callback.png}}}
-    }
-    \caption{Callback cập nhật trạng thái xử lý tài liệu từ AI service}
-    \label{fig:be_ai_callback}
-\end{figure}
-
-\subsubsection{Tổng kết hiện thực Backend}
-
-Nhóm đã hiện thực backend như một modular monolith có phân tách bounded context
-rõ ràng. Spring Boot đảm nhiệm REST API, transaction, security, scheduler và tích
-hợp hạ tầng; từng module nghiệp vụ giữ use case và domain model riêng. Các luồng
-cốt lõi gồm xác thực, quản lý catalog, mượn--trả, đặt trước, phí phạt, thông báo
-thời gian thực, upload tài liệu và tích hợp AI đã được nối thông qua service,
-port, Kafka event và API contract ổn định.
 
 \subsection{Hiện thực AI Service}
 
-Nhóm đã tách AI service thành một tiến trình Python riêng để xử lý các tác vụ có
-đặc thù tính toán và phụ thuộc mô hình. Service này không thay thế backend nghiệp
-vụ; backend vẫn là nơi kiểm soát giao dịch, phân quyền và dữ liệu gốc. AI service
-đảm nhiệm ba nhóm chức năng: ETL tài liệu PDF thành vector và metadata AI, tìm
-kiếm ngữ nghĩa theo truy vấn tự nhiên, và gợi ý sách theo tương tác người dùng.
+AI service được tách thành một tiến trình Python riêng để xử lý các tác vụ có
+đặc thù tính toán và phụ thuộc mô hình. Service này không quyết định nghiệp vụ
+mượn--trả; nó chỉ sinh metadata, vector, điểm tương đồng hoặc danh sách mã ấn
+phẩm. Backend luôn là nơi chuẩn hóa kết quả cuối cùng trước khi trả về frontend.
+
+Để đáp ứng được đặc thù xử lý này, kiến trúc nội bộ của AI Service được phân tách thành luồng xử lý đồng bộ (Synchronous Gateway) và luồng xử lý nền bất đồng bộ (Background Worker). Hình \ref{fig:ai_architecture} mô tả bức tranh tổng thể về cách AI Service tương tác với các thành phần trong hệ thống: từ việc nhận yêu cầu từ Spring Boot, tải tài liệu vật lý từ AWS S3, cho đến việc giao tiếp với LLM (Google Gemini) để trích xuất tri thức. Đặc biệt, để đảm bảo tính toàn vẹn dữ liệu, mọi bản cập nhật trạng thái từ tiến trình xử lý nền (Worker) trả về Backend đều được ký xác thực bằng thuật toán mã hóa HMAC (Hash-based Message Authentication Code).
 
 \begin{figure}[H]
     \centering
-    \IfFileExists{figures/ch06/ai/ai_structure.png}{
-        % Giữ cấu trúc dọc chuẩn mực, tự động co giãn không lo lấn lề dưới
-        \includegraphics[height=0.7\textheight,keepaspectratio]{figures/ch06/ai/ai_structure.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.5\textwidth}{\centering Placeholder: thêm ảnh cấu trúc thư mục mã nguồn AI service tại \texttt{figures/ch06/ai/ai_structure.png}}}
-    }
-    \caption{Cấu trúc thư mục mã nguồn AI service}
-    \label{fig:source_ai}
+    \includegraphics[width=\textwidth]{figures/ch06/ai/ai_architecture.png}
+    \caption{Kiến trúc tổng thể và luồng giao tiếp của AI Service}
+    \label{fig:ai_architecture}
 \end{figure}
 
-\subsubsection{Tổ chức module AI}
+Lõi sức mạnh của phân hệ AI nằm ở luồng xử lý và số hóa tài liệu (ETL Pipeline). Khi một tài liệu PDF mới được hệ thống ghi nhận, tiến trình ETL (Hình \ref{fig:ai_etl_pipeline}) sẽ tự động được kích hoạt. Quá trình này trải qua nhiều công đoạn phức tạp: làm sạch nhiễu (Header/Footer), chia nhỏ văn bản bằng kỹ thuật Cửa sổ trượt (Sliding Window), sinh vector nhúng (Embedding) bằng mô hình SentenceTransformer tiếng Việt, và cuối cùng là đúc kết siêu dữ liệu (Tóm tắt, Phân loại độc giả, Gắn thẻ) thông qua LLM trước khi lưu trữ vào cơ sở dữ liệu \texttt{pgvector}.
 
-\begin{table}[H]
-\centering
-\small % Nâng cỡ chữ từ scriptsize lên small cho rõ ràng và tương thích với các bảng khác
-\renewcommand{\arraystretch}{1.5} % Đẩy khoảng cách trần - sàn của các ô rộng rãi hơn
-\begin{tabularx}{\textwidth}{|p{5.2cm}|>{\raggedright\arraybackslash}X|}
-\hline
-\textbf{Module / file} & \textbf{Trách nhiệm hiện thực} \\
-\hline
-\texttt{api\_service.py} & FastAPI gateway cho semantic search, similar publications, recommendation và xử lý publication theo request đồng bộ. \\
-\hline
-\texttt{worker.py} & Celery worker nhận message xử lý sách, tải PDF, chạy ETL, gửi callback về backend bằng chữ ký HMAC. \\
-\hline
-\texttt{ai\_etl/pdf\_processing.py} & Tải hoặc đọc PDF, trích xuất text bằng PyMuPDF, làm sạch header/footer/số trang và chia chunk sliding window. \\
-\hline
-\texttt{ai\_etl/pipeline.py} & Orchestrator của pipeline ETL: hash skip, embedding, chọn chunk đại diện, reduce bằng LLM, fallback local và ghi database. \\
-\hline
-\texttt{ai\_etl/embedding\_client.py} & Load SentenceTransformer và sinh vector 768 chiều đã normalize. \\
-\hline
-\texttt{ai\_etl/llm\_client.py} & Gọi Gemini, throttle/retry, ép output JSON và chuẩn hóa summary, audience, tag tiếng Việt cùng alias \texttt{tags\_en}. \\
-\hline
-\texttt{ai\_etl/tag\_quality.py} & Lọc tag rác, chuẩn hóa alias Anh--Việt và map tag tiếng Việt sang thuật ngữ tiếng Anh phục vụ search song ngữ. \\
-\hline
-\texttt{ai\_gateway/recommender.py} & Huấn luyện và lưu mô hình ALS implicit feedback từ bảng tương tác người dùng. \\
-\hline
-\texttt{init\_schema.sql} & Khởi tạo schema \texttt{ai\_engine}, bảng vector, ETL run, search log và index pgvector; dữ liệu tag/recommendation dùng bảng canonical ở schema \texttt{public}. \\
-\hline
-\end{tabularx}
-\caption{Các module chính của AI service}
-\label{tab:ai_modules}
-\end{table}
+\begin{figure}[H]
+    \centering
+    % Hạ tỷ lệ chiều rộng xuống để chiều cao tự động co ngắn lại vừa trang
+    \includegraphics[width=0.52\textwidth]{figures/ch06/ai/ai_etl_pipeline.png}
+    \caption{Luồng xử lý trích xuất, biến đổi và tải dữ liệu (ETL Pipeline) cho tài liệu PDF}
+    \label{fig:ai_etl_pipeline}
+\end{figure}
 
+Chi tiết về chức năng và nhiệm vụ cụ thể của từng thành phần mã nguồn bên trong AI Service được thống kê tại Bảng \ref{tab:ai_components_implemented}.
+
+% ================= NỐI TIẾP BẰNG BẢNG CỦA BẠN =================
+
+\begin{longtable}{|p{3.8cm}|p{4cm}|p{6.5cm}|}
+\caption{Các thành phần AI Service đã hiện thực}
+\label{tab:ai_components_implemented}\\
+\hline
+\textbf{Thành phần} & \textbf{Nhóm chức năng} & \textbf{Nội dung đã hiện thực} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Thành phần} & \textbf{Nhóm chức năng} & \textbf{Nội dung đã hiện thực} \\
+\hline
+\endhead
+\texttt{api\_service.py} & FastAPI gateway &
+Cung cấp health check, semantic search, similar publications, recommendation và
+xử lý publication theo request đồng bộ. \\
+\hline
+\texttt{worker.py} & Xử lý nền &
+Nhận message xử lý sách, tải PDF, chạy ETL, ghi trạng thái và gửi callback về
+backend bằng chữ ký HMAC. \\
+\hline
+\texttt{pdf\_processing.py} & PDF ETL &
+Tải/đọc PDF, trích xuất text bằng PyMuPDF, làm sạch header/footer/số trang, chia
+chunk sliding window. \\
+\hline
+\texttt{pipeline.py} & Điều phối ETL &
+Hash skip, sinh embedding, chọn chunk đại diện, reduce metadata bằng LLM, fallback
+local khi lỗi và ghi kết quả vào database. \\
+\hline
+\texttt{embedding\_client.py} & Embedding &
+Load SentenceTransformer tiếng Việt, sinh vector 768 chiều, normalize vector và
+phục vụ semantic search/similar/recommendation. \\
+\hline
+\texttt{llm\_client.py} & Metadata AI &
+Gọi Gemini, throttle/retry, ép output JSON, sinh summary, audience, tag tiếng
+Việt và alias \texttt{tags\_en}. \\
+\hline
+\texttt{tag\_quality.py} & Làm sạch tag &
+Lọc tag rác, chuẩn hóa alias Anh--Việt, map tag tiếng Việt sang thuật ngữ tiếng
+Anh để hỗ trợ tìm kiếm song ngữ. \\
+\hline
+\texttt{recommender.py} & Gợi ý sách &
+Huấn luyện ALS implicit feedback, kết hợp content-based, collaborative signal và
+trending fallback. \\
+\hline
+\texttt{init\_schema.sql} & Dữ liệu AI &
+Khởi tạo schema \texttt{ai\_engine}, bảng vector, ETL run, search log, index
+pgvector và bảng recommendation. \\
+\hline
+\end{longtable}
+
+% --- ĐOẠN CHUYỂN Ý 1: TỪ MODULE SANG MINH CHỨNG HÌNH ẢNH ---
+Để minh chứng cho hoạt động của các thành phần mã nguồn nêu trên, hệ thống ghi nhận các kết quả đầu ra rõ rệt ở cả lớp giao diện người dùng lẫn lớp lưu trữ dữ liệu. Hình \ref{fig:ai_feature_showcase} thể hiện trải nghiệm trực quan của bạn đọc khi sử dụng công cụ tìm kiếm ngữ nghĩa và tiếp nhận các đề xuất sách cá nhân hóa. Song song đó, Hình \ref{fig:ai_etl_vector_showcase} cung cấp bằng chứng kỹ thuật (Technical Evidence) về tiến trình xử lý nền (ETL run) và cấu trúc dữ liệu vector nhiều chiều đã được lưu trữ thành công trong \texttt{pgvector}.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/ai/semantic_search.png}
+        \caption{Semantic search}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/ai/recommendation.png}
+        \caption{Gợi ý sách}
+    \end{subfigure}
+    \caption{Các chức năng AI đã tích hợp vào hệ thống}
+    \label{fig:ai_feature_showcase}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/ai/etl_run.png}
+        \caption{Kết quả chạy ETL}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch06/ai/vector_db.png}
+        \caption{Dữ liệu vector trong PostgreSQL}
+    \end{subfigure}
+    \caption{Pipeline xử lý PDF và lưu vector}
+    \label{fig:ai_etl_vector_showcase}
+\end{figure}
+
+% --- ĐOẠN CHUYỂN Ý 2: TỪ HÌNH ẢNH SANG NĂNG LỰC KỸ THUẬT ---
+Dựa trên các kết quả trực quan này, Bảng \ref{tab:ai_capability_summary} tổng hợp chi tiết các năng lực trí tuệ nhân tạo cốt lõi mà phân hệ AI Service đã đảm nhiệm. Các năng lực này được thiết kế không chỉ để phô diễn công nghệ, mà còn phải đáp ứng nghiêm ngặt các tiêu chuẩn về an toàn tích hợp, khả năng chịu lỗi (fault tolerance) và cơ chế dự phòng (fallback) khi giao tiếp với mô hình ngôn ngữ lớn (LLM).
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{|p{3.2cm}|X|X|}
+\begin{tabularx}{\textwidth}{|p{3.5cm}|X|}
 \hline
-\textbf{Quyết định} & \textbf{Phương án đã dùng} & \textbf{Lý do} \\
+\textbf{Năng lực AI} & \textbf{Nội dung đã hiện thực} \\
 \hline
-Tách AI khỏi backend & FastAPI/Celery service riêng. & Backend Java giữ nghiệp vụ ổn định; AI có thể thay model, scale worker và cache model độc lập. \\
+Xử lý PDF &
+Upload PDF từ thủ thư, chạy ETL nền, lưu trạng thái \texttt{RUNNING},
+\texttt{SUCCESS}, \texttt{FAILED}, không làm gián đoạn nghiệp vụ catalog. \\
 \hline
-Vector database & PostgreSQL + pgvector thay vì vector DB riêng. & Dữ liệu thư viện đã nằm trong PostgreSQL, pgvector đủ cho phạm vi đồ án và giảm chi phí vận hành. \\
+Semantic search &
+Sinh embedding cho truy vấn, tìm chunk gần nhất bằng pgvector, gom về
+publication id và trả kết quả cho backend lọc nghiệp vụ. \\
 \hline
-Embedding tiếng Việt & \texttt{bkai-foundation-models/vietnamese-bi-encoder}. & Mô hình phù hợp truy vấn tiếng Việt, sinh vector 768 chiều và hỗ trợ semantic search. \\
+Metadata enrichment &
+Sinh summary, audience, tag học thuật, alias tiếng Anh và ghi về publication để
+hiển thị trên chi tiết sách/tìm kiếm. \\
 \hline
-LLM reduce & Gemini với prompt JSON bắt buộc, có fallback local. & Tạo summary nội dung, audience, 5 tag tiếng Việt và \texttt{tags\_en} trong cùng một lần gọi; pipeline vẫn hoàn tất khi LLM lỗi hoặc quá tải. \\
+Similar books &
+Tính tương đồng dựa trên vector nội dung và metadata để đề xuất sách liên quan
+từ trang chi tiết. \\
 \hline
-Recommendation & Hybrid: content-based realtime, ALS, trending fallback. & Phủ được cả người dùng mới, người dùng có ít tương tác và người dùng có lịch sử đủ lớn. \\
+Recommendation &
+Gợi ý cá nhân hóa theo lịch sử xem, wishlist, mượn, rating; có fallback khi
+người dùng mới hoặc dữ liệu tương tác còn ít. \\
 \hline
-\end{tabularx}
-\caption{Các quyết định kỹ thuật trong AI service}
-\label{tab:ai_design_decisions}
-\end{table}
-
-\subsubsection{Schema dữ liệu AI và chỉ mục vector}
-
-Nhóm đã tạo schema \texttt{ai\_engine} cho dữ liệu đặc thù AI như vector,
-ETL run và search log. Các dữ liệu biên mục dùng chung với backend như tag,
-liên kết tag--ấn phẩm và recommendation được chuẩn hóa về schema
-\texttt{public} để tránh tồn tại hai nguồn sự thật. Bảng vector của ấn phẩm lưu
-từng chunk của tài liệu cùng embedding \texttt{vector(768)}. Chỉ mục HNSW trên
-embedding phục vụ truy vấn cosine distance; chỉ mục GIN trigram trên
-\texttt{chunk\_text} phục vụ fallback keyword search.
-
-Trong thiết kế cuối cùng, schema \texttt{ai\_engine} không định nghĩa bảng tag
-hoặc bảng cache recommendation riêng. Các bảng \texttt{tags},
-\texttt{publication\_tags}, \texttt{tag\_translations} và
-\texttt{ai\_recommendations} thuộc schema \texttt{public}, vì đây là dữ liệu
-được backend, frontend và AI service cùng sử dụng.
-
-\begin{table}[H]
-\centering
-\scriptsize
-\begin{tabularx}{\textwidth}{|p{4.7cm}|X|}
-\hline
-\textbf{Bảng} & \textbf{Vai trò} \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{ai\_engine.}\\\texttt{publication\_vectors}\end{tabular} & Lưu \texttt{publication\_id}, \texttt{chunk\_text}, \texttt{embedding vector(768)} và thời điểm tạo vector. \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{ai\_engine.}\\\texttt{publication\_etl\_runs}\end{tabular} & Theo dõi \texttt{file\_hash}, trạng thái \texttt{RUNNING/SUCCESS/FAILED}, số chunk, số vector và lỗi nếu có. \\
-\hline
-\texttt{public.tags}, \texttt{publication\_tags} & Lưu tag canonical bằng tiếng Việt và liên kết tối đa 5 tag với mỗi ấn phẩm. \\
-\hline
-\texttt{public.tag\_translations} & Lưu alias tiếng Anh của tag để search hai chiều Anh--Việt mà không cần lưu tag tiếng Anh như một tag riêng. \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{ai\_engine.}\\\texttt{search\_logs}\end{tabular} & Ghi lại truy vấn semantic search và danh sách ấn phẩm trả về để phân tích sau. \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{public.}\\\texttt{ai\_recommendations}\end{tabular} & Bảng chia sẻ kết quả gợi ý cho backend/frontend sử dụng trực tiếp. \\
+An toàn tích hợp &
+Callback HMAC, timeout/retry, fallback local khi LLM lỗi, kiểm thử API contract
+và kiểm tra độ trễ cơ bản. \\
 \hline
 \end{tabularx}
-\caption{Các bảng dữ liệu AI quan trọng}
-\label{tab:ai_database_tables}
+\caption{Các năng lực AI đã tích hợp vào hệ thống}
+\label{tab:ai_capability_summary}
 \end{table}
 
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/ai/vector_db.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/ai/vector_db.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh database bảng \texttt{ai\_engine.publication\_vectors} tại \texttt{figures/ch06/ai/vector_db.png}}}
-    }
-    \caption{Dữ liệu vector của tài liệu trong PostgreSQL/pgvector}
-    \label{fig:ai_db_vectors}
-\end{figure}
-
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/ai/etl_run.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/ai/etl_run.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh database bảng \texttt{ai\_engine.publication\_etl\_runs} tại \texttt{figures/ch06/ai/etl_run.png}}}
-    }
-    \caption{Trạng thái ETL của từng ấn phẩm trong database}
-    \label{fig:ai_db_etl_runs}
-\end{figure}
-
-\subsubsection{Pipeline ETL tài liệu PDF}
-
-Pipeline ETL được kích hoạt khi thủ thư upload tài liệu PDF cho ấn phẩm. Backend
-đưa message vào queue hoặc gọi API xử lý; AI service tải file PDF, trích xuất
-text, chia chunk, sinh embedding, ghi vector, chọn chunk đại diện, gọi LLM để tạo
-summary nội dung, audience, tag tiếng Việt, alias tag tiếng Anh và callback về
-backend.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\scriptsize,
-    node distance=0.45cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.72cm, text width=2.55cm},
-    arrow/.style={-{Latex[length=2mm]}, thick}
-]
-    \node[box, fill=blue!8] (pdf) {PDF URL / file};
-    \node[box, fill=orange!10, below=of pdf] (extract) {Extract + clean text};
-    \node[box, fill=green!8, below=of extract] (chunk) {Sliding window chunk};
-    \node[box, fill=purple!8, below=of chunk] (embed) {SBERT embedding};
-    \node[box, fill=gray!12, below=of embed] (vector) {Insert pgvector};
-    \node[box, fill=yellow!12, below=of vector] (reduce) {Select chunks + LLM reduce};
-    \node[box, fill=green!8, below=of reduce] (db) {Update summary/tags\\translations/status};
-    \node[box, fill=blue!8, below=of db] (callback) {HMAC callback Backend};
-
-    \draw[arrow] (pdf) -- (extract);
-    \draw[arrow] (extract) -- (chunk);
-    \draw[arrow] (chunk) -- (embed);
-    \draw[arrow] (embed) -- (vector);
-    \draw[arrow] (vector) -- (reduce);
-    \draw[arrow] (reduce) -- (db);
-    \draw[arrow] (db) -- (callback);
-\end{tikzpicture}
-\caption{Luồng ETL tài liệu PDF trong AI service}
-\label{fig:ai_etl_pipeline}
-\end{figure}
-
+% --- ĐOẠN CHUYỂN Ý 3: TỪ KỸ THUẬT SANG GIÁ TRỊ VẬN HÀNH ---
+Công nghệ chỉ thực sự có ý nghĩa khi nó phục vụ đúng bài toán con người. Bảng \ref{tab:ai_value_highlights} đúc kết những điểm sáng nổi bật nhất, minh chứng cho việc ứng dụng AI đã thực sự giải phóng sức lao động của thủ thư (thông qua tự động hóa xử lý nền) và nâng tầm trải nghiệm khám phá tri thức của độc giả (thông qua tìm kiếm trên lõi nội dung thay vì từ khóa bề mặt).
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\begin{tabularx}{\textwidth}{|p{3.4cm}|X|p{3.4cm}|}
 \hline
-\textbf{Tham số} & \textbf{Giá trị/ý nghĩa} \\
+\textbf{Điểm hiện thực} & \textbf{Nội dung đã làm} & \textbf{Giá trị thực tế} \\
 \hline
-\texttt{AI\_ETL\_CHUNK\_SIZE} & Mặc định \texttt{1500} ký tự, tạo đoạn đủ dài để giữ ngữ cảnh. \\
+Xử lý nền &
+AI worker nhận request, tải PDF, chạy ETL và callback kết quả về backend. &
+Thủ thư không phải chờ AI xử lý xong mới tiếp tục thao tác catalog. \\
 \hline
-\texttt{AI\_ETL\_CHUNK\_OVERLAP} & Mặc định \texttt{150} ký tự, tránh mất ý tại biên chunk. \\
+Tìm trên nội dung PDF &
+Chunk nội dung được embedding và lưu vào pgvector để semantic search. &
+Kết quả tìm kiếm dựa trên nội dung sách, không chỉ tiêu đề hoặc mô tả. \\
 \hline
-\begin{tabular}[c]{@{}l@{}}\texttt{AI\_ETL\_VECTOR}\\\texttt{\_INSERT\_BATCH\_SIZE}\end{tabular} & Mặc định \texttt{256}, ghi vector theo lô để giảm số round-trip database. \\
+Metadata enrichment &
+Sinh summary, audience, tag tiếng Việt và alias tiếng Anh. &
+Trang chi tiết sách và bộ lọc tìm kiếm có thêm dữ liệu có ích cho người đọc. \\
 \hline
-\begin{tabular}[c]{@{}l@{}}\texttt{AI\_ETL\_REDUCE}\\\texttt{\_MAX\_CHUNKS}\end{tabular} & Mặc định \texttt{12}, giới hạn số chunk đưa vào LLM. \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{AI\_ETL\_REDUCE}\\\texttt{\_TOTAL\_CHARS\_BUDGET}\end{tabular} & Mặc định \texttt{10000}, kiểm soát token/cost của prompt. \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{AI\_ETL\_ENABLE}\\\texttt{\_HASH\_SKIP}\end{tabular} & Nếu hash PDF không đổi và đã có output, pipeline bỏ qua reprocess. \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{AI\_ETL\_ENABLE}\\\texttt{\_ENGLISH\_TRANSLATION}\end{tabular} & Mặc định tắt; chỉ bật khi muốn gọi thêm LLM để dịch toàn bộ title/description/summary. Alias tag tiếng Anh vẫn được sinh trong reduce chính nên không cần call riêng. \\
+Fallback &
+Khi LLM lỗi hoặc dữ liệu tương tác ít, hệ thống dùng rule local, content-based và trending. &
+Tính năng AI vẫn có kết quả ổn định trong điều kiện demo hoặc quota giới hạn. \\
 \hline
 \end{tabularx}
-\caption{Các tham số ETL chính}
-\label{tab:ai_etl_config}
+\caption{Các điểm giá trị nổi bật ở AI Service}
+\label{tab:ai_value_highlights}
 \end{table}
 
-\subsubsection{Làm sạch PDF và chia chunk}
+% --- ĐOẠN CHUYỂN Ý 4: TỔNG KẾT TOÀN BỘ CHƯƠNG 6 ---
+\subsection{Tổng kết kết quả hiện thực}
 
-PDF thường chứa header/footer lặp, số trang, lỗi xuống dòng và ký tự null. Nhóm
-đã xử lý nhiễu trước khi chunk để vector biểu diễn nội dung thật của tài liệu
-thay vì thông tin trình bày. Sau khi làm sạch, text được chia bằng sliding window
-theo \texttt{chunk\_size} và \texttt{overlap}.
+Khép lại toàn bộ quá trình triển khai từ Frontend, Backend đến AI Service, sự thành công của một hệ thống phần mềm không chỉ nằm ở việc hoàn thiện từng module đơn lẻ, mà là khả năng liên kết chúng thành các luồng nghiệp vụ (Business Flows) thông suốt.
 
-
-\subsubsection{Sinh embedding và ghi vector}
-
-Embedding được sinh bằng SentenceTransformer. Các vector được normalize trước
-khi ghi database, phù hợp với cosine distance trong pgvector. Pipeline không ghi
-từng vector đơn lẻ mà gom theo batch để giảm thời gian insert.
-
-
-\subsubsection{Chọn chunk đại diện và reduce bằng LLM}
-
-Nếu đưa toàn bộ PDF vào LLM, chi phí và độ trễ sẽ tăng theo độ dài tài liệu.
-Nhóm đã chọn chiến lược reduce-first: chỉ chọn một số chunk đại diện dựa trên độ
-gần với centroid của toàn bộ tài liệu và ràng buộc đa dạng để tránh chọn nhiều
-chunk trùng ý. Sau đó từng chunk được cắt theo ngân sách ký tự trước khi đưa vào
-Gemini.
-
-
-LLM được yêu cầu trả về đúng một JSON object gồm \texttt{master\_summary},
-\texttt{audience}, \texttt{tags} và \texttt{tags\_en}. Prompt bắt buộc summary
-chỉ dựa trên \texttt{CONTENT\_EXCERPTS}, không ghép nhan đề/tác giả/category để
-tạo câu mô tả giả. Tag gốc luôn là tiếng Việt, đúng 5 tag, không dùng tên sách,
-tên tác giả, tên category rộng hoặc các nhãn chung chung. \texttt{tags\_en} là
-alias tiếng Anh theo cùng thứ tự, dùng thuật ngữ người học hay tìm kiếm như
-\texttt{Web Development}, \texttt{Machine Learning}. Nếu Gemini lỗi, hết quota
-hoặc trả JSON không hợp lệ, pipeline chuyển sang fallback local dựa trên nội
-dung trích xuất, từ khóa chuyên ngành và heuristic khoa; fallback cũng sinh alias
-tiếng Anh bằng bảng map cấu hình sẵn.
+Bảng \ref{tab:implementation_value_flows} tổng hợp 4 luồng giá trị xương sống của dự án, đối chiếu trực tiếp giữa các thành phần công nghệ đã tham gia và những minh chứng rõ nét đã được trình bày xuyên suốt chương này. Đây là thước đo cuối cùng khẳng định hệ thống đã được xây dựng hoàn chỉnh từ đầu đến cuối (end-to-end) và đáp ứng trọn vẹn bài toán thực tiễn đặt ra ban đầu.
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{|p{3.3cm}|X|X|}
+\begin{tabularx}{\textwidth}{|p{3.4cm}|X|p{3.4cm}|}
 \hline
-\textbf{Output} & \textbf{Nguồn sinh} & \textbf{Cách sử dụng trong hệ thống} \\
+\textbf{Luồng được show} & \textbf{Thành phần tham gia} & \textbf{Kết quả thể hiện trong Chương 6} \\
 \hline
-\texttt{master\_summary} & LLM reduce hoặc fallback local. & Hiển thị tóm tắt nội dung và hỗ trợ keyword fallback search. \\
+Upload và xử lý sách &
+Frontend upload, Backend catalog/AI gateway, AI worker, pgvector. &
+Có màn hình upload, bảng module, ảnh ETL, ảnh vector DB và callback. \\
 \hline
-\texttt{audience} & LLM chọn một mã khoa hoặc heuristic keyword. & Gợi ý nhóm độc giả phù hợp với ấn phẩm. \\
+Tìm kiếm thông minh &
+Public search UI, Backend search API, AI semantic search, catalog filter. &
+Có màn hình tìm kiếm, bảng năng lực AI và ảnh semantic search. \\
 \hline
-\texttt{tags} & LLM sinh đúng 5 tag tiếng Việt hoặc fallback từ nội dung/chuyên ngành. & Ghi vào \texttt{public.tags} và \texttt{publication\_tags}; frontend hiển thị chip tag và cho bấm tìm kiếm. \\
+Mượn--trả và thanh toán &
+User/librarian UI, circulation module, PayOS, notification realtime. &
+Có màn hình dashboard, mượn sách, QR PayOS, cập nhật thanh toán và notification. \\
 \hline
-\texttt{tags\_en} & LLM trả alias tiếng Anh cùng thứ tự hoặc map từ \texttt{tag\_quality.py}. & Ghi vào \texttt{public.tag\_translations} để truy vấn Anh--Việt match cùng một tag canonical. \\
-\hline
-\texttt{file\_hash}, \texttt{chunks\_count}, \texttt{vectors\_count} & Pipeline ETL. & Theo dõi trạng thái xử lý và quyết định skip khi file không đổi. \\
+Quản trị vận hành &
+Admin/librarian pages, audit/policy, scheduler, API documentation. &
+Có bảng module Backend, bảng giá trị Backend và ảnh Swagger/cấu trúc module. \\
 \hline
 \end{tabularx}
-\caption{Kết quả AI ghi ngược vào dữ liệu ấn phẩm}
-\label{tab:ai_reduce_outputs}
+\caption{Các luồng giá trị được minh chứng trong phần hiện thực}
+\label{tab:implementation_value_flows}
 \end{table}
 
+\section{Tổng kết hiện thực}
 
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/ai/summary_tag.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/ai/summary_tag.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh database summary, audience và tag AI tại \texttt{figures/ch06/ai/summary_tag.png}}}
-    }
-    \caption{Summary, audience và tag AI sau khi ETL hoàn tất}
-    \label{fig:ai_db_tags_summary}
-\end{figure}
-
-\subsubsection{Worker bất đồng bộ và callback an toàn}
-
-Tác vụ xử lý PDF có thể kéo dài nên nhóm đã hiện thực Celery worker cho luồng
-bất đồng bộ. Worker nhận message gồm \texttt{book\_id}, \texttt{pdf\_url} và
-\texttt{webhook\_url}, tải PDF về thư mục tạm, chạy pipeline và gửi callback
-\texttt{SUCCESS} hoặc \texttt{FAILED}. Callback được ký bằng HMAC-SHA256 trên
-chuỗi \texttt{timestamp.body}; backend kiểm tra chữ ký trước khi cập nhật trạng
-thái AI.
-
-
-\subsubsection{Tìm kiếm ngữ nghĩa}
-
-Semantic search nhận truy vấn tự nhiên từ frontend/backend. AI service encode
-truy vấn thành vector, tìm các chunk gần nhất bằng toán tử \texttt{<=>} của
-pgvector, gom kết quả theo \texttt{publication\_id}, lấy khoảng cách nhỏ nhất của
-mỗi ấn phẩm và trả về danh sách ID. Đây là lớp mở rộng độ phủ khi keyword search
-không bắt được cách diễn đạt gần nghĩa. Ở trải nghiệm tìm kiếm cuối cùng,
-frontend/backend vẫn ưu tiên lexical search theo keyword/tag/category trước,
-semantic search chỉ bổ sung kết quả chưa trùng. Để tăng độ ổn định, service kết
-hợp ba nguồn kết quả: nearest vector chunks, keyword fallback trên metadata và
-keyword search trên \texttt{chunk\_text}.
-
-\begin{lstlisting}[language=SQL, caption={Truy vấn semantic search bằng pgvector}, label={lst:ai_semantic_sql}]
-SELECT publication_id, MIN(embedding <=> :query_vector) AS distance
-FROM ai_engine.publication_vectors
-WHERE embedding IS NOT NULL
-GROUP BY publication_id
-ORDER BY distance ASC
-LIMIT :limit;
-\end{lstlisting}
-
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    font=\scriptsize,
-    node distance=0.5cm,
-    box/.style={draw, rounded corners=2pt, align=center, minimum height=0.75cm, text width=2.7cm},
-    arrow/.style={-{Latex[length=2mm]}, thick}
-]
-    \node[box, fill=blue!8] (query) {Query text};
-    \node[box, fill=orange!10, below=of query] (encode) {Encode query vector};
-    \node[box, fill=purple!8, below=of encode] (vector) {Nearest chunks\\pgvector HNSW};
-    \node[box, fill=gray!12, below=of vector] (keyword) {Keyword fallback\\metadata + chunks};
-    \node[box, fill=green!8, below=of keyword] (merge) {Merge unique IDs};
-    \node[box, fill=yellow!12, below=of merge] (log) {Log search};
-    \node[box, fill=blue!8, below=of log] (response) {publicationIds};
-
-    \draw[arrow] (query) -- (encode);
-    \draw[arrow] (encode) -- (vector);
-    \draw[arrow] (vector) -- (keyword);
-    \draw[arrow] (keyword) -- (merge);
-    \draw[arrow] (merge) -- (log);
-    \draw[arrow] (log) -- (response);
-\end{tikzpicture}
-\caption{Luồng xử lý semantic search}
-\label{fig:ai_semantic_search_flow}
-\end{figure}
-
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/ai/semantic_search.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/ai/semantic_search.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh Postman/Swagger gọi semantic search tại \texttt{figures/ch06/ai/semantic_search.png}}}
-    }
-    \caption{Kết quả API semantic search}
-    \label{fig:ai_semantic_search_api}
-\end{figure}
-
-\subsubsection{Tìm sách tương tự}
-
-Với chức năng sách tương tự, service lấy tối đa 80 vector đầu tiên của ấn phẩm,
-tính vector hồ sơ bằng trung bình vector, normalize và tìm các chunk gần nhất
-của ấn phẩm khác. Kết quả chỉ giữ các sách còn bản sao \texttt{AVAILABLE}; nếu
-không đủ số lượng, hệ thống bổ sung bằng trending books.
-
-
-\subsubsection{Gợi ý sách hybrid}
-
-Recommendation service được thiết kế theo nhiều lớp để xử lý các tình huống dữ
-liệu khác nhau. Nếu người dùng chưa có tương tác, hệ thống dùng trending
-fallback. Nếu đã có tương tác, service tạo profile vector realtime từ các sách đã
-xem, wishlist hoặc mượn; đồng thời gọi mô hình ALS đã huấn luyện từ implicit
-feedback. Kết quả content-based được ưu tiên, sau đó hợp nhất với ALS và bổ sung
-trending nếu chưa đủ số lượng.
+Về tổng thể, nhóm đã hiện thực hệ thống theo đúng ba lớp: frontend phục vụ tương
+tác theo vai trò, backend giữ nghiệp vụ và dữ liệu gốc, AI service xử lý các tác
+vụ thông minh. Các chức năng đã làm không chỉ dừng ở demo giao diện, mà đã nối
+tới API, cơ sở dữ liệu, tác vụ nền, dịch vụ ngoài, kiểm thử và cấu hình triển
+khai. Bảng dưới đây tóm tắt các luồng end-to-end quan trọng nhất.
 
 \begin{table}[H]
 \centering
-\scriptsize
-\begin{tabularx}{\textwidth}{|p{4.5cm}|X|X|}
+\small
+\begin{tabularx}{\textwidth}{|p{3.7cm}|X|}
 \hline
-\textbf{Strategy} & \textbf{Điều kiện dùng} & \textbf{Nguồn xếp hạng} \\
+\textbf{Luồng end-to-end} & \textbf{Các phần đã nối thông} \\
 \hline
-\begin{tabular}[c]{@{}l@{}}\texttt{TRENDING}\\\texttt{\_FALLBACK}\end{tabular} & Người dùng chưa có tương tác hoặc không có vector/model phù hợp. & Tổng hợp lượt xem, wishlist, mượn, rating và ngày tạo. \\
+Đăng ký/đăng nhập &
+Frontend auth pages, backend auth module, email verification, JWT/refresh token,
+Google OAuth2 và route guard theo role. \\
 \hline
-\begin{tabular}[c]{@{}l@{}}\texttt{REALTIME}\\\texttt{\_CONTENT\_BASED}\end{tabular} & Người dùng có tương tác và có vector sách tương ứng. & Trung bình có trọng số của vector sách đã tương tác. \\
+Tra cứu và mượn sách &
+Public/user search, catalog API, trạng thái bản sao, circulation API, thông báo
+cho bạn đọc và dashboard thủ thư. \\
 \hline
-\texttt{ALS\_HYBRID} & Mô hình ALS có user/item profile đủ dữ liệu. & Collaborative filtering từ ma trận implicit feedback. \\
+Đặt trước &
+User reservation page, backend reservation queue, scheduler deadline, xác nhận
+nhận sách và notification realtime. \\
 \hline
-\begin{tabular}[c]{@{}l@{}}\texttt{REALTIME\_CBF}\\\texttt{\_ALS\_HYBRID}\end{tabular} & Cả content-based và ALS đều trả kết quả. & Hợp nhất CBF trước, ALS sau, loại trùng và lọc sách còn bản sao. \\
+Phí phạt &
+Fine API, giao diện bạn đọc/thủ thư, PayOS QR, thanh toán tiền mặt, cập nhật
+trạng thái fine và lịch sử giao dịch. \\
 \hline
-\end{tabularx}
-\caption{Chiến lược gợi ý sách}
-\label{tab:ai_recommendation_strategy}
-\end{table}
-
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ch06/ai/recommendation.png}{
-        \includegraphics[width=0.9\textwidth]{figures/ch06/ai/recommendation.png}
-    }{
-        \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering Placeholder: thêm ảnh database \texttt{public.ai\_recommendations} tại \texttt{figures/ch06/ai/recommendation.png}}}
-    }
-    \caption{Kết quả gợi ý sách trong bảng \texttt{public.ai\_recommendations}}
-    \label{fig:ai_db_recommendations}
-\end{figure}
-
-\subsubsection{API contract và kiểm thử độ trễ}
-
-AI service cung cấp các API contract ổn định để backend gọi. Các response chỉ
-trả về danh sách mã ấn phẩm và \texttt{strategy}; backend giữ
-trách nhiệm lấy metadata đầy đủ và kiểm soát quyền truy cập. Nhóm cũng hiện thực
-test hợp đồng để kiểm tra \texttt{/health}, semantic search và recommendation
-với ngưỡng độ trễ mặc định \texttt{200ms} trong môi trường live test.
-
-\begin{table}[H]
-\centering
-\scriptsize
-\begin{tabularx}{\textwidth}{|p{4.8cm}|p{4.2cm}|X|}
+Upload PDF và AI &
+Librarian upload, presigned URL, backend AI gateway, worker ETL, Gemini metadata,
+pgvector và callback cập nhật publication. \\
 \hline
-\textbf{Endpoint} & \textbf{Input} & \textbf{Output} \\
+Tìm kiếm/gợi ý thông minh &
+Semantic search UI, AI service, recommendation module, behavior tracking, similar
+books và fallback khi dữ liệu ít. \\
 \hline
-\texttt{GET /health} & Không có. & \texttt{\{"status":"ok"\}}. \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{POST /api/v1/}\\\texttt{publications/process}\end{tabular} &
-\texttt{publication\_id}, \texttt{pdf\_url}, \texttt{force\_reprocess}. &
-Trạng thái xử lý, số chunk/vector, tags, \texttt{tags\_en} và audience. \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{POST /api/v1/}\\\texttt{semantic-search}\end{tabular} &
-\texttt{query\_text}, \texttt{limit}. &
-\texttt{publication\_ids}. \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{GET /api/v1/}\\\texttt{publications/\{id\}/similar}\end{tabular} &
-\texttt{publication\_id}, \texttt{limit}. &
-\texttt{publication\_ids}. \\
-\hline
-\begin{tabular}[c]{@{}l@{}}\texttt{POST /api/v1/}\\\texttt{recommendations}\end{tabular} &
-\texttt{user\_id}, \texttt{limit}. &
-\texttt{publication\_ids}, \texttt{strategy}. \\
+Vận hành &
+Admin policy, audit log, scheduler, WebSocket notification, Docker Compose,
+Nginx reverse proxy và cấu hình môi trường production. \\
 \hline
 \end{tabularx}
-\caption{API chính của AI service}
-\label{tab:ai_api_contract}
+\caption{Các luồng end-to-end đã hiện thực}
+\label{tab:end_to_end_summary}
 \end{table}
-
-\subsubsection{Tổng kết hiện thực AI Service}
-
-Nhóm đã hiện thực AI service như một lớp xử lý độc lập nhưng liên kết chặt với
-backend qua database, API và callback. Các điểm có giá trị chính gồm: ETL PDF có
-làm sạch text và hash skip, lưu embedding bằng pgvector/HNSW, chọn chunk đại
-diện trước khi gọi LLM, fallback local khi LLM lỗi, semantic search kết hợp
-vector và keyword, similar books theo profile vector, recommendation hybrid giữa
-content-based, ALS và trending fallback. Các bảng \texttt{publication\_vectors},
-\texttt{publication\_etl\_runs}, \texttt{search\_logs} và
-\texttt{ai\_recommendations} giúp kết quả AI có thể được kiểm chứng trực tiếp
-từ database thay vì chỉ quan sát trên giao diện.

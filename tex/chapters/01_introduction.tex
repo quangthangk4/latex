@@ -88,9 +88,7 @@ Các mục tiêu cụ thể bao gồm:
         \item Tích hợp hệ thống gợi ý cá nhân hóa dựa trên lịch sử xem, wishlist,
         mượn sách, đánh giá và dữ liệu vector nội dung.
         \item Phát triển mô-đun AI ETL xử lý PDF, làm sạch văn bản, chia chunk,
-        sinh embedding, tóm tắt nội dung, audience và tag; phần dịch metadata
-        tiếng Anh đầy đủ được tắt mặc định để giảm tải LLM, chỉ giữ alias tag
-        tiếng Anh phục vụ tìm kiếm song ngữ.
+        sinh embedding, tóm tắt nội dung, audience và tag.
     \end{itemize}
 
     \item \textbf{Về nền tảng công nghệ:} Hệ thống gồm frontend React/Vite,
@@ -98,9 +96,9 @@ Các mục tiêu cụ thể bao gồm:
     S3-compatible storage, PayOS và AI service Python/FastAPI/Celery dùng
     embedding model kết hợp Gemini ở bước reduce metadata.
 
-    \item \textbf{Về phạm vi triển khai:} Sản phẩm của đề tài là hệ thống web
-    hoàn chỉnh ở mức đồ án tốt nghiệp, được kiểm chứng bằng dữ liệu và kịch bản
-    nghiệp vụ phù hợp với quy mô thư viện cấp khoa hoặc trường; một số tích hợp
+    \item \textbf{Về phạm vi triển khai:} Sản phẩm của đề tài là hệ thống web thật sự
+    hoàn chỉnh, được kiểm chứng bằng dữ liệu và kịch bản
+    nghiệp vụ phù hợp với quy mô thư viện cấp trường; một số tích hợp
     ngoài như PayOS, S3 và Gemini phụ thuộc cấu hình môi trường triển khai.
 \end{itemize}
 
@@ -132,8 +130,7 @@ Các mục tiêu cụ thể bao gồm:
     nối với catalog, search, recommendation, notification và giao diện người
     dùng.
     \item \textbf{Đề xuất giải pháp khả thi:} Hệ thống áp dụng hướng hybrid
-    search và hybrid recommendation ở mức phù hợp với dữ liệu và hạ tầng của đồ
-    án, đồng thời có cơ chế fallback để tránh phụ thuộc tuyệt đối vào LLM.
+    search và hybrid recommendation ở mức phù hợp với dữ liệu và quy mô thư viện theo hướng tối ưu nhất giữa độ chính xác và khả năng khám phá.
 \end{itemize}
 
 \section{Cấu trúc báo cáo}
